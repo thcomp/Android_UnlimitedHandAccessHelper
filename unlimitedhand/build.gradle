@@ -1,0 +1,54 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
+
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    maven { url 'http://raw.github.com/thcomp/Android_Utility/master/repository' }
+    maven { url 'http://raw.github.com/thcomp/Android_BluetoothHelper/master/repository' }
+    maven { url 'http://raw.github.com/thcomp/Android_BaseActivity/master/repository' }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:25.1.0'
+    compile 'jp.co.thcomp:android_utility:1.0.+'
+    compile 'jp.co.thcomp:android_bluetoothhelper:0.0.+'
+    testCompile 'junit:junit:4.12'
+}
+
+def repo = new File(rootDir, "repository")
+
+apply plugin: 'maven'
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository url: "file://${repo.absolutePath}"
+            pom.version = '0.0.1'
+            pom.groupId = 'jp.co.thcomp'
+            pom.artifactId = 'android_uh_access_helper'
+        }
+    }
+}
