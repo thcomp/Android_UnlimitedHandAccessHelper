@@ -1,9 +1,9 @@
 package jp.co.thcomp.unlimitedhand;
 
-abstract class AbstractSensorData<DataType> {
+public abstract class AbstractSensorData<DataType> {
     protected final String channelData[] = new String[getSensorNum()];
 
-    abstract protected int getSensorNum();
+    abstract public int getSensorNum();
     abstract protected DataType changeDataType(String orgData);
 
     public boolean expandRawData(byte[] rawData) {

@@ -28,9 +28,10 @@ public class UhAccessHelper {
 
     public enum ConnectResult {
         ErrNoSupportBT,
-        ErrNotFoundUnlimitedHand,
+        ErrNotPairedUnlimitedHand,
         ErrUnknown,
-        Found,
+        PairedWithoutConnection,
+        Connected,
     }
 
     public enum SendCommand {
@@ -48,6 +49,7 @@ public class UhAccessHelper {
         Temperature("A"),
         Acceleration("a"),
         Gyro("a"),
+        Quaternion("q"),
         UpSharpnessLevel("t"),
         DownSharpnessLevel("u"),
         UpVoltageLevel("h"),
@@ -72,7 +74,8 @@ public class UhAccessHelper {
         NoSupportBT,
         Init,
         LaunchBTAccessHelper,
-        FoundUnlimitedHand,
+        PairedUnlimitedHand,
+        ConnectedUnlimitedHand,
     }
 
     private static UhAccessHelper sInstance;
@@ -90,6 +93,7 @@ public class UhAccessHelper {
     private AccessStatus mAccessStatus = AccessStatus.Init;
     private BluetoothDevice mUnlimitedHand = null;
     private final ThreadUtil.OnetimeSemaphore mConnectSemaphore = new ThreadUtil.OnetimeSemaphore();
+    private final ThreadUtil.OnetimeSemaphore mSendSemaphore = new ThreadUtil.OnetimeSemaphore();
     private int mCurrentSharpnessLevel = DEFAULT_EMS_SHARPNESS_LEVEL;
     private int mCurrentVoltageLevel = DEFAULT_EMS_VOLTAGE_LEVEL;
 
@@ -126,9 +130,16 @@ public class UhAccessHelper {
     public boolean readPhotoSensor(PhotoSensorData data) {
         boolean ret = false;
 
-        if (data != null && mAccessStatus == AccessStatus.FoundUnlimitedHand) {
-            if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.PhotoSensor.getLineCode())) {
-                ret = data.expandRawData(readData());
+        if (data != null) {
+            switch (mAccessStatus) {
+                case PairedUnlimitedHand:
+                case ConnectedUnlimitedHand:
+                    mSendSemaphore.initialize();
+                    if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.PhotoSensor.getLineCode())) {
+                        mSendSemaphore.start();
+                        ret = data.expandRawData(readData());
+                    }
+                    break;
             }
         }
 
@@ -145,9 +156,16 @@ public class UhAccessHelper {
     public boolean readAngle(AngleData data) {
         boolean ret = false;
 
-        if (data != null && mAccessStatus == AccessStatus.FoundUnlimitedHand) {
-            if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Angle.getLineCode())) {
-                ret = data.expandRawData(readData());
+        if (data != null) {
+            switch (mAccessStatus) {
+                case PairedUnlimitedHand:
+                case ConnectedUnlimitedHand:
+                    mSendSemaphore.initialize();
+                    if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Angle.getLineCode())) {
+                        mSendSemaphore.start();
+                        ret = data.expandRawData(readData());
+                    }
+                    break;
             }
         }
 
@@ -164,9 +182,16 @@ public class UhAccessHelper {
     public boolean readTemperature(TemperatureData data) {
         boolean ret = false;
 
-        if (data != null && mAccessStatus == AccessStatus.FoundUnlimitedHand) {
-            if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Temperature.getLineCode())) {
-                ret = data.expandRawData(readData());
+        if (data != null) {
+            switch (mAccessStatus) {
+                case PairedUnlimitedHand:
+                case ConnectedUnlimitedHand:
+                    mSendSemaphore.initialize();
+                    if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Temperature.getLineCode())) {
+                        mSendSemaphore.start();
+                        ret = data.expandRawData(readData());
+                    }
+                    break;
             }
         }
 
@@ -183,9 +208,16 @@ public class UhAccessHelper {
     public boolean readAcceleration(AccelerationData data) {
         boolean ret = false;
 
-        if (data != null && mAccessStatus == AccessStatus.FoundUnlimitedHand) {
-            if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Acceleration.getLineCode())) {
-                ret = data.expandRawData(readData());
+        if (data != null) {
+            switch (mAccessStatus) {
+                case PairedUnlimitedHand:
+                case ConnectedUnlimitedHand:
+                    mSendSemaphore.initialize();
+                    if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Acceleration.getLineCode())) {
+                        mSendSemaphore.start();
+                        ret = data.expandRawData(readData());
+                    }
+                    break;
             }
         }
 
@@ -199,12 +231,45 @@ public class UhAccessHelper {
      * @param data
      * @return
      */
-    public boolean readGyro(AngleData data) {
+    public boolean readGyro(GyroData data) {
         boolean ret = false;
 
-        if (data != null && mAccessStatus == AccessStatus.FoundUnlimitedHand) {
-            if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Gyro.getLineCode())) {
-                ret = data.expandRawData(readData());
+        if (data != null) {
+            switch (mAccessStatus) {
+                case PairedUnlimitedHand:
+                case ConnectedUnlimitedHand:
+                    mSendSemaphore.initialize();
+                    if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Gyro.getLineCode())) {
+                        mSendSemaphore.start();
+                        ret = data.expandRawData(readData());
+                    }
+                    break;
+            }
+        }
+
+        return ret;
+    }
+
+    /**
+     * クォータニオン値読み取り
+     * UHへの読み取り命令は加速度センサーと一緒で、一緒にデータが返却される
+     *
+     * @param data
+     * @return
+     */
+    public boolean readQuaternion(QuaternionData data) {
+        boolean ret = false;
+
+        if (data != null) {
+            switch (mAccessStatus) {
+                case PairedUnlimitedHand:
+                case ConnectedUnlimitedHand:
+                    mSendSemaphore.initialize();
+                    if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Quaternion.getLineCode())) {
+                        mSendSemaphore.start();
+                        ret = data.expandRawData(readData());
+                    }
+                    break;
             }
         }
 
@@ -214,8 +279,11 @@ public class UhAccessHelper {
     public boolean vibrate() {
         boolean ret = false;
 
-        if (mAccessStatus == AccessStatus.FoundUnlimitedHand) {
-            ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Vibrate.getLineCode());
+        switch (mAccessStatus) {
+            case PairedUnlimitedHand:
+            case ConnectedUnlimitedHand:
+                ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Vibrate.getLineCode());
+                break;
         }
 
         return ret;
@@ -228,10 +296,15 @@ public class UhAccessHelper {
     public boolean upSharpnessLevel() {
         boolean ret = false;
 
-        if ((mAccessStatus == AccessStatus.FoundUnlimitedHand) && (mCurrentSharpnessLevel < MAX_EMS_SHARPNESS_LEVEL)) {
-            if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.UpSharpnessLevel.getLineCode()))) {
-                mCurrentSharpnessLevel += CHANGE_EMS_SHARPNESS_LEVEL;
-            }
+        switch (mAccessStatus) {
+            case PairedUnlimitedHand:
+            case ConnectedUnlimitedHand:
+                if (mCurrentSharpnessLevel < MAX_EMS_SHARPNESS_LEVEL) {
+                    if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.UpSharpnessLevel.getLineCode()))) {
+                        mCurrentSharpnessLevel += CHANGE_EMS_SHARPNESS_LEVEL;
+                    }
+                }
+                break;
         }
 
         return ret;
@@ -240,10 +313,15 @@ public class UhAccessHelper {
     public boolean downSharpnessLevel() {
         boolean ret = false;
 
-        if ((mAccessStatus == AccessStatus.FoundUnlimitedHand) && (MIN_EMS_SHARPNESS_LEVEL < mCurrentSharpnessLevel)) {
-            if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.DownSharpnessLevel.getLineCode()))) {
-                mCurrentSharpnessLevel -= CHANGE_EMS_SHARPNESS_LEVEL;
-            }
+        switch (mAccessStatus) {
+            case PairedUnlimitedHand:
+            case ConnectedUnlimitedHand:
+                if (MIN_EMS_SHARPNESS_LEVEL < mCurrentSharpnessLevel) {
+                    if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.DownSharpnessLevel.getLineCode()))) {
+                        mCurrentSharpnessLevel -= CHANGE_EMS_SHARPNESS_LEVEL;
+                    }
+                }
+                break;
         }
 
         return ret;
@@ -256,10 +334,15 @@ public class UhAccessHelper {
     public boolean upVoltageLevel() {
         boolean ret = false;
 
-        if ((mAccessStatus == AccessStatus.FoundUnlimitedHand) && (mCurrentVoltageLevel < MAX_EMS_VOLTAGE_LEVEL)) {
-            if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.UpVoltageLevel.getLineCode()))) {
-                mCurrentVoltageLevel += CHANGE_EMS_VOLTAGE_LEVEL;
-            }
+        switch (mAccessStatus) {
+            case PairedUnlimitedHand:
+            case ConnectedUnlimitedHand:
+                if (mCurrentVoltageLevel < MAX_EMS_VOLTAGE_LEVEL) {
+                    if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.UpVoltageLevel.getLineCode()))) {
+                        mCurrentVoltageLevel += CHANGE_EMS_VOLTAGE_LEVEL;
+                    }
+                }
+                break;
         }
 
         return ret;
@@ -268,10 +351,20 @@ public class UhAccessHelper {
     public boolean downVoltageLevel() {
         boolean ret = false;
 
-        if ((mAccessStatus == AccessStatus.FoundUnlimitedHand) && (MIN_EMS_VOLTAGE_LEVEL < mCurrentVoltageLevel)) {
-            if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.DownSharpnessLevel.getLineCode()))) {
-                mCurrentVoltageLevel -= CHANGE_EMS_VOLTAGE_LEVEL;
-            }
+        switch (mAccessStatus) {
+            case PairedUnlimitedHand:
+            case ConnectedUnlimitedHand:
+                if (MIN_EMS_VOLTAGE_LEVEL < mCurrentVoltageLevel) {
+                    synchronized (mSendSemaphore) {
+                        mSendSemaphore.initialize();
+
+                        if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.DownVoltageLevel.getLineCode()))) {
+                            mSendSemaphore.start();
+                            mCurrentVoltageLevel -= CHANGE_EMS_VOLTAGE_LEVEL;
+                        }
+                    }
+                }
+                break;
         }
 
         return ret;
@@ -280,17 +373,21 @@ public class UhAccessHelper {
     public boolean electricMuscleStimulation(int padNum) {
         boolean ret = false;
 
-        if (mAccessStatus == AccessStatus.FoundUnlimitedHand) {
-            String enumName = "EMS_Pad" + String.valueOf(padNum);
-            Field enumField = null;
+        switch (mAccessStatus) {
+            case PairedUnlimitedHand:
+            case ConnectedUnlimitedHand: {
+                String enumName = "EMS_Pad" + String.valueOf(padNum);
+                Field enumField = null;
 
-            try {
-                enumField = SendCommand.class.getDeclaredField(enumName);
-                ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, ((SendCommand) enumField.get(null)).getLineCode());
-            } catch (NoSuchFieldException e) {
-                LogUtil.e(TAG, e.getLocalizedMessage());
-            } catch (IllegalAccessException e) {
-                LogUtil.e(TAG, e.getLocalizedMessage());
+                try {
+                    enumField = SendCommand.class.getDeclaredField(enumName);
+                    ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, ((SendCommand) enumField.get(null)).getLineCode());
+                } catch (NoSuchFieldException e) {
+                    LogUtil.e(TAG, e.getLocalizedMessage());
+                } catch (IllegalAccessException e) {
+                    LogUtil.e(TAG, e.getLocalizedMessage());
+                }
+                break;
             }
         }
 
@@ -302,7 +399,7 @@ public class UhAccessHelper {
         int readSize = 0;
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 
-        while ((readSize = mBTAccessHelper.readData(mUnlimitedHand, BluetoothAccessHelper.BT_SERIAL_PORT, readBuffer)) > 0) {
+        if ((readSize = mBTAccessHelper.readData(mUnlimitedHand, BluetoothAccessHelper.BT_SERIAL_PORT, readBuffer)) > 0) {
             outStream.write(readBuffer, 0, readSize);
         }
 
@@ -311,52 +408,77 @@ public class UhAccessHelper {
 
     private synchronized ConnectResult connect(String deviceName, boolean useRegExp) {
         ConnectResult ret = ConnectResult.ErrUnknown;
+        boolean continueConnection = true;
 
-        if (mAccessStatus == AccessStatus.Init) {
-            mConnectSemaphore.initialize();
-            mBTAccessHelper.startBluetoothHelper();
-            mConnectSemaphore.start();
-        }
+        while (continueConnection) {
+            switch (mAccessStatus) {
+                case Init:
+                    mConnectSemaphore.initialize();
+                    mBTAccessHelper.startBluetoothHelper();
+                    mConnectSemaphore.start();
+                    break;
+                case LaunchBTAccessHelper: {
+                    Set<BluetoothDevice> deviceSet = mBTAccessHelper.getPairedDevices();
+                    BluetoothDevice[] deviceArray = deviceSet != null ? deviceSet.toArray(new BluetoothDevice[deviceSet.size()]) : new BluetoothDevice[0];
+                    Method compareMethod = null;
 
-        if (mAccessStatus == AccessStatus.FoundUnlimitedHand) {
-            // 接続済み
-            ret = ConnectResult.Found;
-        } else if (mAccessStatus == AccessStatus.LaunchBTAccessHelper) {
-            Set<BluetoothDevice> deviceSet = mBTAccessHelper.getPairedDevices();
-            BluetoothDevice[] deviceArray = deviceSet != null ? deviceSet.toArray(new BluetoothDevice[deviceSet.size()]) : new BluetoothDevice[0];
-            Method compareMethod = null;
-
-            try {
-                if (useRegExp) {
-                    compareMethod = String.class.getMethod("matches", String.class);
-                } else {
-                    compareMethod = Object.class.getMethod("equals", Object.class);
-                }
-            } catch (NoSuchMethodException e) {
-                LogUtil.exception(TAG, e);
-            }
-
-            for (BluetoothDevice device : deviceArray) {
-                try {
-                    if ((boolean) compareMethod.invoke(device.getName(), deviceName)) {
-                        mUnlimitedHand = device;
-                        break;
+                    try {
+                        if (useRegExp) {
+                            compareMethod = String.class.getMethod("matches", String.class);
+                        } else {
+                            compareMethod = Object.class.getMethod("equals", Object.class);
+                        }
+                    } catch (NoSuchMethodException e) {
+                        LogUtil.exception(TAG, e);
                     }
-                } catch (IllegalAccessException e) {
-                    LogUtil.exception(TAG, e);
-                } catch (InvocationTargetException e) {
-                    LogUtil.exception(TAG, e);
-                }
-            }
 
-            if (mUnlimitedHand != null) {
-                mAccessStatus = AccessStatus.FoundUnlimitedHand;
-                ret = ConnectResult.Found;
-            } else {
-                ret = ConnectResult.ErrNotFoundUnlimitedHand;
+                    for (BluetoothDevice device : deviceArray) {
+                        try {
+                            if ((boolean) compareMethod.invoke(device.getName(), deviceName)) {
+                                mUnlimitedHand = device;
+                                break;
+                            }
+                        } catch (IllegalAccessException e) {
+                            LogUtil.exception(TAG, e);
+                        } catch (InvocationTargetException e) {
+                            LogUtil.exception(TAG, e);
+                        }
+                    }
+
+                    if (mUnlimitedHand != null) {
+                        mAccessStatus = AccessStatus.PairedUnlimitedHand;
+                    } else {
+                        ret = ConnectResult.ErrNotPairedUnlimitedHand;
+                        continueConnection = false;
+                    }
+                    break;
+                }
+                case PairedUnlimitedHand:
+                    if (mBTAccessHelper.connect(mUnlimitedHand, BluetoothAccessHelper.BT_SERIAL_PORT)) {
+                        mAccessStatus = AccessStatus.ConnectedUnlimitedHand;
+                        ret = ConnectResult.Connected;
+                    } else {
+                        ret = ConnectResult.PairedWithoutConnection;
+                    }
+                    continueConnection = false;
+                    break;
+                case ConnectedUnlimitedHand:
+                    if (mBTAccessHelper.isConnected(mUnlimitedHand, BluetoothAccessHelper.BT_SERIAL_PORT)) {
+                        ret = ConnectResult.Connected;
+                        continueConnection = false;
+                    } else {
+                        // connection has already disconnected, try again.
+                        mAccessStatus = AccessStatus.PairedUnlimitedHand;
+                    }
+                    break;
+                case NoSupportBT:
+                    ret = ConnectResult.ErrNoSupportBT;
+                    continueConnection = false;
+                    break;
+                default:
+                    continueConnection = false;
+                    break;
             }
-        } else if (mAccessStatus == AccessStatus.NoSupportBT) {
-            ret = ConnectResult.ErrNoSupportBT;
         }
 
         return ret;
@@ -386,7 +508,7 @@ public class UhAccessHelper {
     private BluetoothAccessHelper.OnNotifyResultListener mBTNotifyResultListener = new BluetoothAccessHelper.OnNotifyResultListener() {
         @Override
         public void onSendDataResult(int result, BluetoothDevice device, byte[] data, int offset, int length) {
-
+            mSendSemaphore.stop();
         }
     };
 }

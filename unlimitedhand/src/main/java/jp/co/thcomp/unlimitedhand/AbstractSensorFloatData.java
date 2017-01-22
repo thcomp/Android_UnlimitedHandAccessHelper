@@ -1,6 +1,6 @@
 package jp.co.thcomp.unlimitedhand;
 
-abstract class AbstractSensorFloatData extends AbstractSensorData<Float> {
+public abstract class AbstractSensorFloatData extends AbstractSensorData<Float> {
     @Override
     protected Float changeDataType(String orgData) {
         float ret = 0f;
@@ -8,6 +8,7 @@ abstract class AbstractSensorFloatData extends AbstractSensorData<Float> {
         try {
             ret = Float.valueOf(orgData);
         } catch (NumberFormatException e) {
+        } catch (Exception e) {
         }
 
         return ret;

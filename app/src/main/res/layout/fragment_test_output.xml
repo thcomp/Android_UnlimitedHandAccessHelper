@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/llActionButtonArea"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/btnVibrate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="vibrate" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="1.0"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnStimulate0"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Stimulate 0"/>
+
+            <View
+                android:layout_width="4dp"
+                android:layout_height="1px"/>
+
+            <Button
+                android:id="@+id/btnStimulate1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Stimulate 1"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="1.0"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnStimulate2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Stimulate 2"/>
+
+            <View
+                android:layout_width="4dp"
+                android:layout_height="1px"/>
+
+            <Button
+                android:id="@+id/btnStimulate3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Stimulate 3"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="1.0"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnStimulate4"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Stimulate 4"/>
+
+            <View
+                android:layout_width="4dp"
+                android:layout_height="1px"/>
+
+            <Button
+                android:id="@+id/btnStimulate5"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Stimulate 5"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="1.0"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnStimulate6"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Stimulate 6"/>
+
+            <View
+                android:layout_width="4dp"
+                android:layout_height="1px"/>
+
+            <Button
+                android:id="@+id/btnStimulate7"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Stimulate 7"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="1.0"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnSharpnessUp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Sharpness UP"/>
+
+            <View
+                android:layout_width="4dp"
+                android:layout_height="1px"/>
+
+            <Button
+                android:id="@+id/btnSharpnessDown"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Sharpness DOWN"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="1.0"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnVoltageUp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Voltage UP"/>
+
+            <View
+                android:layout_width="4dp"
+                android:layout_height="1px"/>
+
+            <Button
+                android:id="@+id/btnVoltageDown"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Voltage DOWN"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

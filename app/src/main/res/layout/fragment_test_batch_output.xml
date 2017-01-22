@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:weightSum="1.0"
+              android:orientation="vertical">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <LinearLayout
+            android:id="@+id/llActionButtonArea"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:weightSum="1.0">
+
+            <Button
+                android:id="@+id/btnVibrate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="vibrate"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="1.0">
+
+                <Button
+                    android:id="@+id/btnStimulate0"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.25"
+                    android:text="EMS 0"/>
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="1px"/>
+
+                <Button
+                    android:id="@+id/btnStimulate1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.25"
+                    android:text="EMS 1"/>
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="1px"/>
+
+                <Button
+                    android:id="@+id/btnStimulate2"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.25"
+                    android:text="EMS 2"/>
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="1px"/>
+
+                <Button
+                    android:id="@+id/btnStimulate3"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.25"
+                    android:text="EMS 3"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="1.0">
+
+                <Button
+                    android:id="@+id/btnStimulate4"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.25"
+                    android:text="EMS 4"/>
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="1px"/>
+
+                <Button
+                    android:id="@+id/btnStimulate5"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.25"
+                    android:text="EMS 5"/>
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="1px"/>
+
+                <Button
+                    android:id="@+id/btnStimulate6"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.25"
+                    android:text="EMS 6"/>
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="1px"/>
+
+                <Button
+                    android:id="@+id/btnStimulate7"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.25"
+                    android:text="EMS 7"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="1.0">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.5"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sharp: "/>
+
+                    <Button
+                        android:id="@+id/btnSharpnessUp"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.5"
+                        android:text="↑"/>
+
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px"/>
+
+                    <Button
+                        android:id="@+id/btnSharpnessDown"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.5"
+                        android:text="↓"/>
+
+                </LinearLayout>
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="1px"/>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.5"
+                    android:orientation="horizontal"
+                    android:weightSum="1.0">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Voltage: "/>
+
+                    <Button
+                        android:id="@+id/btnVoltageUp"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.5"
+                        android:text="↑"/>
+
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px"/>
+
+                    <Button
+                        android:id="@+id/btnVoltageDown"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.5"
+                        android:text="↓"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="16dp"/>
+
+            <Button
+                android:id="@+id/btnStartBatchCommand"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="start batch command"/>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <ListView
+        android:id="@+id/lvBatchCommandList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1.0">
+    </ListView>
+</LinearLayout>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:weightSum="1.0"
+              android:padding="8dp"
+              android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <ProgressBar
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"/>
+
+        <View
+            android:layout_width="16dp"
+            android:layout_height="1px" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="reading ..."
+            android:layout_gravity="center_vertical"
+            android:textAppearance="@android:style/TextAppearance.Medium"/>
+    </LinearLayout>
+
+    <View
+        android:layout_width="1px"
+        android:layout_height="8dp" />
+
+    <EditText
+        android:id="@+id/etDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="input description for mark"/>
+
+    <View
+        android:layout_width="1px"
+        android:layout_height="8dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:weightSum="1.0"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnInsertMark"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="insert mark"/>
+
+        <View
+            android:layout_width="4dp"
+            android:layout_height="1px" />
+
+        <Button
+            android:id="@+id/btnStopInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="stop read"/>
+    </LinearLayout>
+
+</LinearLayout>
