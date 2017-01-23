@@ -72,7 +72,7 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
 
         if (dataSensorNum != null) {
             for (int i = 0; i < dataSensorNum; i++) {
-                queryBuilder.append(String.format("%1$s%2$02d real", COLUMN_SENSOR_VALUE_PREFIX, i));
+                queryBuilder.append(String.format(", %1$s%2$02d real", COLUMN_SENSOR_VALUE_PREFIX, i));
             }
         }
 

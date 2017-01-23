@@ -24,7 +24,7 @@ public class UhAccessHelper {
     private static final int MAX_EMS_SHARPNESS_LEVEL = 20;
     private static final int MIN_EMS_SHARPNESS_LEVEL = 0;
     private static final int CHANGE_EMS_SHARPNESS_LEVEL = 5;
-    private static final String LINE_SEPARATER = "\n";
+    private static final String LINE_SEPARATOR = "\n";
 
     public enum ConnectResult {
         ErrNoSupportBT,
@@ -62,7 +62,7 @@ public class UhAccessHelper {
         }
 
         byte[] getLineCode() {
-            return (mCode + LINE_SEPARATER).getBytes();
+            return (mCode + LINE_SEPARATOR).getBytes();
         }
 
         byte[] getCode() {

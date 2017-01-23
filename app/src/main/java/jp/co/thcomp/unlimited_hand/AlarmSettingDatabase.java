@@ -1,0 +1,235 @@
+package jp.co.thcomp.unlimited_hand;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+import jp.co.thcomp.unlimitedhand.AbstractSensorData;
+import jp.co.thcomp.util.LogUtil;
+
+public class AlarmSettingDatabase extends SQLiteOpenHelper {
+    private static final String TAG = AlarmSettingDatabase.class.getSimpleName();
+    private static final String DATABASE_NAME = "alarm_setting.db";
+    private static final String COLUMN_ID = "_id";
+
+    private static final Class[] BASE_DATA_CLASS_ARRAY = {
+            AlarmData.class,
+    };
+
+    private Long mCurrentMaxId = null;
+
+    public AlarmSettingDatabase(Context context, int version) {
+        super(context, DATABASE_NAME, null, version);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase sqLiteDatabase) {
+        sqLiteDatabase.beginTransaction();
+        for (int i = 0, size = BASE_DATA_CLASS_ARRAY.length; i < size; i++) {
+            createTable(sqLiteDatabase, BASE_DATA_CLASS_ARRAY[i]);
+        }
+        sqLiteDatabase.setTransactionSuccessful();
+        sqLiteDatabase.endTransaction();
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
+
+    }
+
+    private void createTable(SQLiteDatabase sqLiteDatabase, Class baseDataClass) {
+        StringBuilder queryBuilder = new StringBuilder();
+
+        queryBuilder.append("create table if not exists ").append(baseDataClass.getSimpleName()).append("(");
+
+        // default data
+        queryBuilder.append(COLUMN_ID).append(" integer primary key");
+
+        Field[] fields = baseDataClass.getFields();
+        if (fields != null) {
+            for (int i = 0, size = fields.length; i < size; i++) {
+                String columnType = null;
+                Class fieldTypeClass = fields[i].getType();
+
+                if ((fieldTypeClass == long.class) || (fieldTypeClass == Long.class)) {
+                    columnType = "integer";
+                } else if (fieldTypeClass == int.class || fieldTypeClass == Integer.class) {
+                    columnType = "integer";
+                } else if (fieldTypeClass == short.class || fieldTypeClass == Short.class) {
+                    columnType = "integer";
+                } else if (fieldTypeClass == char.class || fieldTypeClass == Character.class) {
+                    columnType = "integer";
+                } else if (fieldTypeClass == byte.class || fieldTypeClass == Byte.class) {
+                    columnType = "integer";
+                } else if (fieldTypeClass == boolean.class || fieldTypeClass == Boolean.class) {
+                    columnType = "integer";
+                } else if (fieldTypeClass == String.class) {
+                    columnType = "text";
+                }
+
+                queryBuilder.append(", ").append(fields[i].getName()).append(" ").append(columnType);
+            }
+        }
+        queryBuilder.append(");");
+
+        sqLiteDatabase.execSQL(queryBuilder.toString());
+    }
+
+    public boolean insertData(AlarmData data) {
+        String tableName = data.getClass().getSimpleName();
+        ContentValues values = new ContentValues();
+        Field[] fields = data.getClass().getFields();
+
+        values.put(COLUMN_ID, getNextId(data.getClass()));
+        for (Field field : fields) {
+            try {
+                Object value = field.get(data);
+
+                if (value != null) {
+                    Class valueClass = value.getClass();
+                    if (valueClass == Long.class || valueClass == long.class) {
+                        values.put(field.getName(), (long) value);
+                    } else if (valueClass == Integer.class || valueClass == int.class) {
+                        values.put(field.getName(), (int) value);
+                    } else if (valueClass == Short.class || valueClass == short.class) {
+                        values.put(field.getName(), (int) value);
+                    } else if (valueClass == Character.class || valueClass == char.class) {
+                        values.put(field.getName(), (int) value);
+                    } else if (valueClass == Byte.class || valueClass == byte.class) {
+                        values.put(field.getName(), (int) value);
+                    } else if (valueClass == Boolean.class || valueClass == boolean.class) {
+                        values.put(field.getName(), (boolean) value ? 1 : 0);
+                    } else if (valueClass == String.class) {
+                        values.put(field.getName(), (String) value);
+                    }
+                }
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return getWritableDatabase().insert(tableName, null, values) == 1;
+    }
+
+    public int clearData(Class[] targetTableClassArray) {
+        SQLiteDatabase database = getWritableDatabase();
+        int clearDataCount = 0;
+
+        database.beginTransaction();
+        for (int i = 0, size = targetTableClassArray.length; i < size; i++) {
+            clearDataCount += database.delete(targetTableClassArray[i].getSimpleName(), null, null);
+        }
+        database.setTransactionSuccessful();
+        database.endTransaction();
+
+        return clearDataCount;
+    }
+
+    public Object[] getData(Class targetTableClass) {
+        SQLiteDatabase database = getReadableDatabase();
+        Cursor cursor = database.query(targetTableClass.getSimpleName(), null, null, null, null, null, COLUMN_ID + " asc");
+        Object[] ret = null;
+
+        if (cursor != null) {
+            try {
+                int size = cursor.getCount();
+                if (size > 0) {
+                    Constructor constructor = targetTableClass.getConstructor();
+                    Field[] fields = targetTableClass.getFields();
+                    ret = new Object[size];
+                    cursor.moveToFirst();
+
+                    for (int i = 0; i < size; i++) {
+                        cursor.moveToPosition(i);
+
+                        ret[i] = constructor.newInstance();
+                        for (int j = 0, sizeJ = fields.length; j < sizeJ; j++) {
+                            int index = cursor.getColumnIndex(fields[j].getName());
+                            if (index >= 0) {
+                                Class fieldTypeClass = fields[j].getType();
+                                if (fieldTypeClass == Long.class) {
+                                    fields[j].set(ret[i], cursor.getLong(index));
+                                } else if (fieldTypeClass == long.class) {
+                                    fields[j].setLong(ret[i], cursor.getLong(index));
+                                } else if (fieldTypeClass == Integer.class) {
+                                    fields[j].set(ret[i], cursor.getInt(index));
+                                } else if (fieldTypeClass == int.class) {
+                                    fields[j].setInt(ret[i], cursor.getInt(index));
+                                } else if (fieldTypeClass == Short.class) {
+                                    fields[j].set(ret[i], (short) cursor.getInt(index));
+                                } else if (fieldTypeClass == short.class) {
+                                    fields[j].setShort(ret[i], (short) cursor.getInt(index));
+                                } else if (fieldTypeClass == Character.class) {
+                                    fields[j].set(ret[i], (char) cursor.getInt(index));
+                                } else if (fieldTypeClass == char.class) {
+                                    fields[j].setChar(ret[i], (char) cursor.getInt(index));
+                                } else if (fieldTypeClass == Byte.class) {
+                                    fields[j].set(ret[i], (byte) cursor.getInt(index));
+                                } else if (fieldTypeClass == byte.class) {
+                                    fields[j].setByte(ret[i], (byte) cursor.getInt(index));
+                                } else if (fieldTypeClass == Boolean.class) {
+                                    fields[j].set(ret[i], cursor.getInt(index) == 1 ? true : false);
+                                } else if (fieldTypeClass == boolean.class) {
+                                    fields[j].setBoolean(ret[i], cursor.getInt(index) == 1 ? true : false);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (NoSuchMethodException e) {
+                LogUtil.exception(TAG, e);
+            } catch (IllegalAccessException e) {
+                LogUtil.exception(TAG, e);
+            } catch (InstantiationException e) {
+                LogUtil.exception(TAG, e);
+            } catch (InvocationTargetException e) {
+                LogUtil.exception(TAG, e);
+            } finally {
+                cursor.close();
+            }
+        }
+
+        return ret;
+    }
+
+    private final synchronized long getNextId(Class targetTableClass) {
+        long ret = 0;
+
+        if (mCurrentMaxId == null) {
+            SQLiteDatabase database = getReadableDatabase();
+            Cursor cursor = database.query(targetTableClass.getSimpleName(), new String[]{COLUMN_ID}, null, null, null, null, COLUMN_ID + " desc", "1");
+            if (cursor != null) {
+                try {
+                    if (cursor.getCount() > 0) {
+                        cursor.moveToFirst();
+                        mCurrentMaxId = cursor.getLong(0);
+                    }
+                } finally {
+                    cursor.close();
+                }
+            }
+        }
+
+        if (mCurrentMaxId != null) {
+            ret = (++mCurrentMaxId);
+        } else {
+            ret = mCurrentMaxId = (long) 1;
+        }
+
+        return ret;
+    }
+
+    public static class AlarmData {
+        public long timeMS;
+        public String title;
+        public boolean repeat;
+    }
+}

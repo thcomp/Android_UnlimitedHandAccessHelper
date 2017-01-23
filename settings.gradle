@@ -1,1 +1,2 @@
-include ':app', ':unlimitedhand'
+include ':app', ':unlimitedhand', ':bt_helper'
+project(':bt_helper').projectDir = new File('../Android_BluetoothHelper/app/')
