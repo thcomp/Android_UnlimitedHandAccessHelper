@@ -2,27 +2,30 @@ package jp.co.thcomp.unlimited_hand.fragment;
 
 
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
-import android.support.v4.widget.TextViewCompat;
-import android.support.v7.widget.SwitchCompat;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.CheckBox;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 import java.util.Calendar;
 
-import jp.co.thcomp.unlimited_hand.AlarmSettingDatabase;
+import jp.co.thcomp.unlimited_hand.AlarmService;
+import jp.co.thcomp.unlimited_hand.Common;
 import jp.co.thcomp.unlimited_hand.R;
 
 public class TestAlarmSettingFragment extends AbstractTestFragment {
-    private AlarmSettingDatabase mAlarmSettingDatabase;
-    private TimeAdapter mHourTimeAdapter;
-    private TimeAdapter mMinuteTimeAdapter;
+    private Spinner mSpnrHour;
+    private Spinner mSpnrMinute;
+    private CheckBox mCbEnableAlarm;
 
     public TestAlarmSettingFragment() {
         // Required empty public constructor
@@ -41,7 +44,6 @@ public class TestAlarmSettingFragment extends AbstractTestFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mAlarmSettingDatabase = new AlarmSettingDatabase(getActivity(), 1);
     }
 
     @Override
@@ -54,12 +56,42 @@ public class TestAlarmSettingFragment extends AbstractTestFragment {
                              Bundle savedInstanceState) {
         Activity activity = getActivity();
         mRootView = super.onCreateView(inflater, container, savedInstanceState);
-        mHourTimeAdapter = new TimeAdapter(activity, TimeAdapter.TimeElementType.Hour);
-        mMinuteTimeAdapter = new TimeAdapter(activity, TimeAdapter.TimeElementType.Minute);
-        ((Spinner)mRootView.findViewById(R.id.spnrHour)).setAdapter(mHourTimeAdapter);
-        ((Spinner)mRootView.findViewById(R.id.spnrMinute)).setAdapter(mMinuteTimeAdapter);
+        TimeAdapter hourTimeAdapter = new TimeAdapter(activity, TimeAdapter.TimeElementType.Hour);
+        TimeAdapter minuteTimeAdapter = new TimeAdapter(activity, TimeAdapter.TimeElementType.Minute);
+        mSpnrHour = (Spinner) mRootView.findViewById(R.id.spnrHour);
+        mSpnrMinute = (Spinner) mRootView.findViewById(R.id.spnrMinute);
+        mCbEnableAlarm = (CheckBox) mRootView.findViewById(R.id.cbEnableAlarm);
+        mSpnrHour.setAdapter(hourTimeAdapter);
+        mSpnrMinute.setAdapter(minuteTimeAdapter);
+        mRootView.findViewById(R.id.btnSaveAlarm).setOnClickListener(mBtnClickListener);
 
         return mRootView;
+    }
+
+    private void startAlarm() {
+        Context context = getContext();
+        AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent alarmIntent = new Intent(Common.INTENT_ACTION_ALARM);
+        alarmIntent.setClass(context, AlarmService.class);
+        PendingIntent alarmPendingIntent = PendingIntent.getService(context, 0, alarmIntent, 0);
+
+        long currentTimeMS = System.currentTimeMillis();
+        Calendar alarmFireCalendar = Calendar.getInstance();
+        alarmFireCalendar.set(Calendar.HOUR_OF_DAY, (int)mSpnrHour.getSelectedItem());
+        alarmFireCalendar.set(Calendar.MINUTE, (int)mSpnrMinute.getSelectedItem());
+
+        if(currentTimeMS > alarmFireCalendar.getTimeInMillis()){
+            // alarm time is past, set next day
+            alarmFireCalendar.set(Calendar.DAY_OF_MONTH, alarmFireCalendar.get(Calendar.DAY_OF_MONTH) + 1);
+        }
+
+        // cancel previous alarm at once
+        manager.cancel(alarmPendingIntent);
+        manager.set(AlarmManager.RTC_WAKEUP, alarmFireCalendar.getTimeInMillis(), alarmPendingIntent);
+    }
+
+    private void saveAlarmInfo() {
+
     }
 
     private View.OnClickListener mBtnClickListener = new View.OnClickListener() {
@@ -67,81 +99,26 @@ public class TestAlarmSettingFragment extends AbstractTestFragment {
         public void onClick(View view) {
             int id = view.getId();
 
+            switch (id) {
+                case R.id.btnSaveAlarm:
+                    if (mCbEnableAlarm.isChecked()) {
+                        startAlarm();
+                    }
+                    saveAlarmInfo();
+                    break;
+            }
         }
     };
 
-    private class AlarmSettingAdapter extends BaseAdapter {
-        private AlarmSettingDatabase.AlarmData[] mAlarmDataArray = null;
-        private Thread mUpdateThread = null;
-
-        public synchronized void update(){
-            if(mUpdateThread == null){
-                mUpdateThread = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mAlarmDataArray = (AlarmSettingDatabase.AlarmData[]) mAlarmSettingDatabase.getData(AlarmSettingDatabase.AlarmData.class);
-                        notifyDataSetChanged();
-                    }
-                });
-                mUpdateThread.start();
-            }
-        }
-
-        @Override
-        public int getCount() {
-            return mAlarmDataArray == null ? 0 : mAlarmDataArray.length;
-        }
-
-        @Override
-        public Object getItem(int i) {
-            return mAlarmDataArray == null ? null : mAlarmDataArray[i];
-        }
-
-        @Override
-        public long getItemId(int i) {
-            return i;
-        }
-
-        @Override
-        public View getView(int i, View view, ViewGroup viewGroup) {
-            Activity activity = getActivity();
-            AlarmSettingDatabase.AlarmData item = (AlarmSettingDatabase.AlarmData) getItem(i);
-
-            if(view == null){
-                LayoutInflater inflater = activity.getLayoutInflater();
-                view = inflater.inflate(R.layout.item_alarm_setting, viewGroup, false);
-            }
-
-            view.findViewById(R.id.btnAddAlarm).setVisibility(View.GONE);
-            view.findViewById(R.id.btnRemoveAlarm).setVisibility(View.VISIBLE);
-            view.findViewById(R.id.btnRemoveAlarm).setOnClickListener(mBtnClickListener);
-
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(item.timeMS);
-
-            Spinner spnrHour = (Spinner)view.findViewById(R.id.spnrHour);
-            Spinner spnrMinute = (Spinner)view.findViewById(R.id.spnrMinute);
-            spnrHour.setAdapter(mHourTimeAdapter);
-            spnrMinute.setAdapter(mMinuteTimeAdapter);
-            spnrHour.setSelection(calendar.get(Calendar.HOUR_OF_DAY));
-            spnrMinute.setSelection(calendar.get(Calendar.MINUTE));
-
-            ((TextView)view.findViewById(R.id.etTitle)).setText(item.title);
-            ((SwitchCompat)view.findViewById(R.id.swtRepeat)).setChecked(item.repeat);
-
-            return view;
-        }
-    }
-
-    private static class TimeAdapter extends BaseAdapter{
+    private static class TimeAdapter extends BaseAdapter {
         enum TimeElementType {
             Hour(24),
             Minute(60),
-            Second(60),
-            ;
+            Second(60),;
 
             int mCount;
-            TimeElementType(int count){
+
+            TimeElementType(int count) {
                 mCount = count;
             }
         }
@@ -149,7 +126,7 @@ public class TestAlarmSettingFragment extends AbstractTestFragment {
         private Context mContext;
         private TimeElementType mElementType;
 
-        public TimeAdapter(Context context, TimeElementType elementType){
+        public TimeAdapter(Context context, TimeElementType elementType) {
             mContext = context;
             mElementType = elementType;
         }
@@ -171,11 +148,13 @@ public class TestAlarmSettingFragment extends AbstractTestFragment {
 
         @Override
         public View getView(int i, View view, ViewGroup viewGroup) {
-            if(view == null){
+            if (view == null) {
                 view = new TextView(mContext);
-                ((TextView)view).setTextAppearance(mContext, android.R.style.TextAppearance_Large);
+                ((TextView) view).setTextAppearance(mContext, android.R.style.TextAppearance_Large);
             }
-            ((TextView)view).setText(String.valueOf(i));
+            TextView tvView = ((TextView) view);
+            tvView.setTextSize(TypedValue.COMPLEX_UNIT_PX, mContext.getResources().getDimensionPixelSize(R.dimen.alarm_display_text_size));
+            tvView.setText(String.valueOf(i));
 
             return view;
         }
