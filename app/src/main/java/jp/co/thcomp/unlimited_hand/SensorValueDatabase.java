@@ -48,8 +48,13 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
     }
 
     @Override
-    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
-
+    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
+        sqLiteDatabase.beginTransaction();
+        for (int i = 0, size = BASE_DATA_CLASS_ARRAY.length; i < size; i++) {
+            createTable(sqLiteDatabase, BASE_DATA_CLASS_ARRAY[i]);
+        }
+        sqLiteDatabase.setTransactionSuccessful();
+        sqLiteDatabase.endTransaction();
     }
 
     private void createTable(SQLiteDatabase sqLiteDatabase, Class baseDataClass) {

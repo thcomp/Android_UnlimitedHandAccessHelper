@@ -40,7 +40,7 @@ public class AlarmService extends Service {
         long savedAlarmTimeMS = PreferenceUtil.readPrefLong(this, Common.PREF_LONG_ALARM_TIME_MS, 0);
 
         if(Math.abs(currentTimeMS - savedAlarmTimeMS) < 60 * 1000){
-            
+
         }
     }
 }

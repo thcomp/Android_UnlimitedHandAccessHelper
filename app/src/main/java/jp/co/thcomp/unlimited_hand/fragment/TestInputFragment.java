@@ -1,8 +1,6 @@
 package jp.co.thcomp.unlimited_hand.fragment;
 
 
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -56,6 +54,7 @@ public class TestInputFragment extends AbstractTestFragment {
 
     private SensorValueDatabase mDatabase;
     private ReadInputSensorTask mReadInputSensorTask;
+    private EditText mMarkDescription;
     private PhotoSensorData mPhotoSensorData = new PhotoSensorData();
     private AngleData mAngleData = new AngleData();
     private TemperatureData mTemperatureData = new TemperatureData();
@@ -111,7 +110,10 @@ public class TestInputFragment extends AbstractTestFragment {
         // Inflate the layout for this fragment
         mRootView = super.onCreateView(inflater, container, savedInstanceState);
 
+        mMarkDescription = (EditText) mRootView.findViewById(R.id.etDescription);
         mRootView.findViewById(R.id.btnStartInput).setOnClickListener(mBtnClickListener);
+        mRootView.findViewById(R.id.btnStopInput).setOnClickListener(mBtnClickListener);
+        mRootView.findViewById(R.id.btnInsertMark).setOnClickListener(mBtnClickListener);
         mRootView.findViewById(R.id.btnSendDataByMail).setOnClickListener(mBtnClickListener);
         mRootView.findViewById(R.id.btnClearData).setOnClickListener(mBtnClickListener);
 
@@ -128,36 +130,25 @@ public class TestInputFragment extends AbstractTestFragment {
 
     private void startReadInputSensor() {
         if (mReadInputSensorTask == null) {
-            ArrayList<READ_SENSOR> readSensorList = new ArrayList<READ_SENSOR>();
-            READ_SENSOR[] allReadSensors = READ_SENSOR.values();
-
-            for (int i = 0, size = allReadSensors.length; i < size; i++) {
-                if (((CheckBox) mRootView.findViewById(allReadSensors[i].mViewResId)).isChecked()) {
-                    readSensorList.add(allReadSensors[i]);
-                }
-            }
-
-            mReadInputSensorTask = new ReadInputSensorTask(readSensorList.toArray(new READ_SENSOR[0]));
+            mReadInputSensorTask = new ReadInputSensorTask();
             mReadInputSensorTask.execute(DEFAULT_READ_INTERVAL_MS);
+            mRootView.findViewById(R.id.llStopInputArea).setVisibility(View.VISIBLE);
+            mRootView.findViewById(R.id.btnStartInput).setVisibility(View.GONE);
         }
     }
 
     private void insertMark() {
-        if (mReadInputSensorTask != null) {
-            final READ_SENSOR[] readSensors = mReadInputSensorTask.mReadSensors;
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    ArrayList<Class> targetClassList = new ArrayList<Class>();
-                    for (READ_SENSOR readSensor : readSensors) {
-                        targetClassList.add(readSensor.mDataClass);
-                    }
-                    mReadInputSensorTask.mMarkDescription.getText().toString();
-
-                    mDatabase.insertMark(targetClassList.toArray(new Class[0]), mReadInputSensorTask.mMarkDescription.getText().toString());
+        final READ_SENSOR[] readSensors = mReadInputSensorTask.mReadSensors;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                ArrayList<Class> targetClassList = new ArrayList<Class>();
+                for (READ_SENSOR readSensor : readSensors) {
+                    targetClassList.add(readSensor.mDataClass);
                 }
-            }).start();
-        }
+                mDatabase.insertMark(targetClassList.toArray(new Class[0]), mMarkDescription.getText().toString());
+            }
+        }).start();
     }
 
     private void sendDataByMail() {
@@ -180,6 +171,9 @@ public class TestInputFragment extends AbstractTestFragment {
                     if (mReadInputSensorTask != null) {
                         mReadInputSensorTask.cancel(false);
                         mReadInputSensorTask = null;
+
+                        mRootView.findViewById(R.id.btnStartInput).setVisibility(View.VISIBLE);
+                        mRootView.findViewById(R.id.llStopInputArea).setVisibility(View.GONE);
                     }
                     break;
                 case R.id.btnInsertMark:
@@ -197,53 +191,26 @@ public class TestInputFragment extends AbstractTestFragment {
 
     private class ReadInputSensorTask extends AsyncTask<Integer, Void, Void> {
         private READ_SENSOR[] mReadSensors;
-        private AlertDialog mReadingSensorDialog;
-        private EditText mMarkDescription;
-
-        public ReadInputSensorTask(READ_SENSOR... readSensors) {
-            mReadSensors = readSensors;
-        }
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-
-            Activity activity = getActivity();
-            View contentView = activity.getLayoutInflater().inflate(R.layout.dialog_read_sensor, null, false);
-            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-            mMarkDescription = (EditText) contentView.findViewById(R.id.etDescription);
-            contentView.findViewById(R.id.btnInsertMark).setOnClickListener(mBtnClickListener);
-            contentView.findViewById(R.id.btnStopInput).setOnClickListener(mBtnClickListener);
-            builder.setView(contentView);
-
-            mReadingSensorDialog = builder.show();
+            mUpdateTargetSensorRunnable.run();
         }
 
         @Override
         protected void onCancelled() {
             super.onCancelled();
-            if (mReadingSensorDialog != null) {
-                mReadingSensorDialog.dismiss();
-                mReadingSensorDialog = null;
-            }
         }
 
         @Override
         protected void onCancelled(Void aVoid) {
             super.onCancelled(aVoid);
-            if (mReadingSensorDialog != null) {
-                mReadingSensorDialog.dismiss();
-                mReadingSensorDialog = null;
-            }
         }
 
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-            if (mReadingSensorDialog != null) {
-                mReadingSensorDialog.dismiss();
-                mReadingSensorDialog = null;
-            }
         }
 
         @Override
@@ -256,9 +223,10 @@ public class TestInputFragment extends AbstractTestFragment {
 
             while (!isCancelled()) {
                 long startTimeMS = System.currentTimeMillis();
+                READ_SENSOR[] tempReadSensors = mReadSensors;
 
-                for (int i = 0, size = mReadSensors.length; i < size; i++) {
-                    switch (mReadSensors[i]) {
+                for (int i = 0, size = tempReadSensors.length; i < size; i++) {
+                    switch (tempReadSensors[i]) {
                         case PHOTO:
                             if (mUHAccessHelper.readPhotoSensor(mPhotoSensorData)) {
                                 mDatabase.insertData(mPhotoSensorData);
@@ -317,6 +285,26 @@ public class TestInputFragment extends AbstractTestFragment {
                 for (int j = 0, sizeJ = readSensor.mDisplayValueResIds.length; j < sizeJ; j++) {
                     mTvReadSensorValues[i][j].setText(String.valueOf(mSensorDataArray[i].getValue(j)));
                 }
+            }
+
+            mUpdateTargetSensorRunnable.run();
+        }
+    };
+
+    private Runnable mUpdateTargetSensorRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (mReadInputSensorTask != null) {
+                ArrayList<READ_SENSOR> readSensorList = new ArrayList<READ_SENSOR>();
+                READ_SENSOR[] allReadSensors = READ_SENSOR.values();
+
+                for (int i = 0, size = allReadSensors.length; i < size; i++) {
+                    if (((CheckBox) mRootView.findViewById(allReadSensors[i].mViewResId)).isChecked()) {
+                        readSensorList.add(allReadSensors[i]);
+                    }
+                }
+
+                mReadInputSensorTask.mReadSensors = readSensorList.toArray(new READ_SENSOR[0]);
             }
         }
     };

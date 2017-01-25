@@ -2,6 +2,8 @@ package jp.co.thcomp.unlimitedhand;
 
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
+import android.os.Handler;
+import android.os.HandlerThread;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
@@ -96,6 +98,8 @@ public class UhAccessHelper {
     private final ThreadUtil.OnetimeSemaphore mSendSemaphore = new ThreadUtil.OnetimeSemaphore();
     private int mCurrentSharpnessLevel = DEFAULT_EMS_SHARPNESS_LEVEL;
     private int mCurrentVoltageLevel = DEFAULT_EMS_VOLTAGE_LEVEL;
+    private HandlerThread mBtHelperNotifyThread;
+    private Handler mBtHelperNotifyHandler;
 
     private UhAccessHelper(Context context) {
         if (context == null) {
@@ -119,6 +123,11 @@ public class UhAccessHelper {
     public void disconnect() {
         mBTAccessHelper.stopBluetoothHelper();
         mAccessStatus = AccessStatus.Init;
+
+        if(mBtHelperNotifyThread != null) {
+            mBtHelperNotifyThread.quit();
+            mBtHelperNotifyThread = null;
+        }
     }
 
     /**
@@ -413,7 +422,14 @@ public class UhAccessHelper {
         while (continueConnection) {
             switch (mAccessStatus) {
                 case Init:
+                    if(mBtHelperNotifyThread != null){
+                        mBtHelperNotifyThread.quit();
+                    }
+                    mBtHelperNotifyThread = new HandlerThread(TAG);
+                    mBtHelperNotifyThread.start();
+                    mBtHelperNotifyHandler = new Handler(mBtHelperNotifyThread.getLooper());
                     mConnectSemaphore.initialize();
+                    mBTAccessHelper.setNotifyHandler(mBtHelperNotifyHandler);
                     mBTAccessHelper.startBluetoothHelper();
                     mConnectSemaphore.start();
                     break;
