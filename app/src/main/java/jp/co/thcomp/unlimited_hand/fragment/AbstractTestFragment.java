@@ -9,7 +9,7 @@ import android.view.ViewGroup;
 
 import jp.co.thcomp.unlimitedhand.UhAccessHelper;
 
-abstract class AbstractTestFragment extends Fragment {
+public abstract class AbstractTestFragment extends Fragment {
     protected UhAccessHelper mUHAccessHelper;
     protected View mRootView;
 
@@ -18,8 +18,12 @@ abstract class AbstractTestFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        mUHAccessHelper = UhAccessHelper.getInstance(getContext());
+        mUHAccessHelper = ((UHAccessHelperProvider)getActivity()).getUhAccessHelper();
         mRootView = inflater.inflate(getLayoutResId(), container, false);
         return mRootView;
+    }
+
+    public interface UHAccessHelperProvider {
+        public UhAccessHelper getUhAccessHelper();
     }
 }

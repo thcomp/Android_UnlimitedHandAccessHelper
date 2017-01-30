@@ -22,13 +22,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 
+import jp.co.thcomp.unlimited_hand.fragment.AbstractTestFragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestBatchOutputFragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestInputFragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestOutputFragment;
 import jp.co.thcomp.unlimitedhand.UhAccessHelper;
 import jp.co.thcomp.util.ToastUtil;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AbstractTestFragment.UHAccessHelperProvider {
     private static final MenuItem[] MENU_ITEMS = {
             new MenuItem("output", TestOutputFragment.class),
             new MenuItem("batch output", TestBatchOutputFragment.class),
@@ -43,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mUHAccessHelper = UhAccessHelper.getInstance(this);
+        mUHAccessHelper = new UhAccessHelper(this);
 
         SwitchCompat swtConnectUHAccess = (SwitchCompat) findViewById(R.id.swtConnectUnlimitedHand);
         swtConnectUHAccess.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -117,6 +118,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         mUHAccessHelper.disconnect();
+    }
+
+    @Override
+    public UhAccessHelper getUhAccessHelper() {
+        return mUHAccessHelper;
     }
 
     private static class MenuItem {

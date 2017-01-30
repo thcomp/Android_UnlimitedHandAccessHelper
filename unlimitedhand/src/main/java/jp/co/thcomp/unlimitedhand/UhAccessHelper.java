@@ -9,6 +9,9 @@ import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 import jp.co.thcomp.bluetoothhelper.BluetoothAccessHelper;
@@ -20,13 +23,27 @@ public class UhAccessHelper {
     private static final String DEFAULT_UH_NAME_PATTERN = "RNBT-[\\w]{4}";
     private static final int DEFAULT_EMS_VOLTAGE_LEVEL = 8;
     private static final int DEFAULT_EMS_SHARPNESS_LEVEL = 15;
-    private static final int MAX_EMS_VOLTAGE_LEVEL = 12;
-    private static final int MIN_EMS_VOLTAGE_LEVEL = 0;
-    private static final int CHANGE_EMS_VOLTAGE_LEVEL = 1;
-    private static final int MAX_EMS_SHARPNESS_LEVEL = 20;
-    private static final int MIN_EMS_SHARPNESS_LEVEL = 0;
-    private static final int CHANGE_EMS_SHARPNESS_LEVEL = 5;
+    //    private static final int MAX_EMS_VOLTAGE_LEVEL = 12;
+//    private static final int MIN_EMS_VOLTAGE_LEVEL = 0;
+//    private static final int CHANGE_EMS_VOLTAGE_LEVEL = 1;
+//    private static final int MAX_EMS_SHARPNESS_LEVEL = 20;
+//    private static final int MIN_EMS_SHARPNESS_LEVEL = 0;
+//    private static final int CHANGE_EMS_SHARPNESS_LEVEL = 5;
     private static final String LINE_SEPARATOR = "\n";
+
+    public static final int DEFAULT_POLLING_RATE_PER_SECOND = 30;
+
+    public static final int POLLING_PHOTO_REFLECTOR = 1;
+    public static final int POLLING_ANGLE = 2;
+    public static final int POLLING_TEMPERATURE = 4;
+    public static final int POLLING_ACCELERATION = 8;
+    public static final int POLLING_GYRO = 16;
+    public static final int POLLING_QUATERNION = 32;
+    public static final int POLLING_ALL = POLLING_PHOTO_REFLECTOR | POLLING_ANGLE | POLLING_TEMPERATURE | POLLING_ACCELERATION | POLLING_GYRO | POLLING_QUATERNION;
+
+    public interface OnSensorPollingListener {
+        void onPollSensor(AbstractSensorData[] sensorDataArray);
+    }
 
     public enum ConnectResult {
         ErrNoSupportBT,
@@ -80,16 +97,6 @@ public class UhAccessHelper {
         ConnectedUnlimitedHand,
     }
 
-    private static UhAccessHelper sInstance;
-
-    public synchronized static UhAccessHelper getInstance(Context context) {
-        if (sInstance == null) {
-            sInstance = new UhAccessHelper(context);
-        }
-
-        return sInstance;
-    }
-
     private Context mContext;
     private BluetoothAccessHelper mBTAccessHelper;
     private AccessStatus mAccessStatus = AccessStatus.Init;
@@ -98,10 +105,14 @@ public class UhAccessHelper {
     private final ThreadUtil.OnetimeSemaphore mSendSemaphore = new ThreadUtil.OnetimeSemaphore();
     private int mCurrentSharpnessLevel = DEFAULT_EMS_SHARPNESS_LEVEL;
     private int mCurrentVoltageLevel = DEFAULT_EMS_VOLTAGE_LEVEL;
+    private long mPollingRatePerSecond = DEFAULT_POLLING_RATE_PER_SECOND;
     private HandlerThread mBtHelperNotifyThread;
     private Handler mBtHelperNotifyHandler;
+    private Thread mSensorPollingThread;
+    private final HashMap<OnSensorPollingListener, Integer> mPollingListenerMap = new HashMap<OnSensorPollingListener, Integer>();
+    private int mPollingTargetFlag = 0;
 
-    private UhAccessHelper(Context context) {
+    public UhAccessHelper(Context context) {
         if (context == null) {
             throw new NullPointerException("context == null");
         }
@@ -110,6 +121,42 @@ public class UhAccessHelper {
         mBTAccessHelper = new BluetoothAccessHelper(context, UhAccessHelper.class.getName());
         mBTAccessHelper.setOnBluetoothStatusListener(mBTStatusListener);
         mBTAccessHelper.setOnNotifyResultListener(mBTNotifyResultListener);
+    }
+
+    public List<BluetoothDevice> getDevices() {
+        return getDevices(DEFAULT_UH_NAME_PATTERN, true);
+    }
+
+    public List<BluetoothDevice> getDevices(String deviceName, boolean useRegExp) {
+        ArrayList<BluetoothDevice> ret = new ArrayList<BluetoothDevice>();
+        Set<BluetoothDevice> deviceSet = mBTAccessHelper.getPairedDevices();
+        BluetoothDevice[] deviceArray = deviceSet != null ? deviceSet.toArray(new BluetoothDevice[deviceSet.size()]) : new BluetoothDevice[0];
+        Method compareMethod = null;
+
+        try {
+            if (useRegExp) {
+                compareMethod = String.class.getMethod("matches", String.class);
+            } else {
+                compareMethod = Object.class.getMethod("equals", Object.class);
+            }
+        } catch (NoSuchMethodException e) {
+            LogUtil.exception(TAG, e);
+        }
+
+        for (BluetoothDevice device : deviceArray) {
+            try {
+                if ((boolean) compareMethod.invoke(device.getName(), deviceName)) {
+                    ret.add(device);
+                    break;
+                }
+            } catch (IllegalAccessException e) {
+                LogUtil.exception(TAG, e);
+            } catch (InvocationTargetException e) {
+                LogUtil.exception(TAG, e);
+            }
+        }
+
+        return ret;
     }
 
     public ConnectResult connect() {
@@ -124,9 +171,42 @@ public class UhAccessHelper {
         mBTAccessHelper.stopBluetoothHelper();
         mAccessStatus = AccessStatus.Init;
 
-        if(mBtHelperNotifyThread != null) {
+        if (mBtHelperNotifyThread != null) {
             mBtHelperNotifyThread.quit();
             mBtHelperNotifyThread = null;
+        }
+    }
+
+    public void setPollingRatePerSecond(int pollingRatePerSecond) {
+        mPollingRatePerSecond = pollingRatePerSecond;
+    }
+
+    public void startPollingSensor(OnSensorPollingListener listener, int pollingTargetFlag) {
+        synchronized (mPollingListenerMap) {
+            mPollingListenerMap.put(listener, pollingTargetFlag);
+            mPollingTargetFlag |= pollingTargetFlag;
+
+            if (mSensorPollingThread == null) {
+                mSensorPollingThread = new Thread(mPollingSensorRunnable);
+                mSensorPollingThread.start();
+            }
+        }
+    }
+
+    public void stopPollingSensor(OnSensorPollingListener listener) {
+        synchronized (mPollingListenerMap) {
+            mPollingListenerMap.remove(listener);
+
+            if (mPollingListenerMap.size() == 0) {
+                mSensorPollingThread = null;
+            } else {
+                // change polling target
+                int pollingTargetFlag = 0;
+                for (int tempPollingTargetFlag : mPollingListenerMap.values()) {
+                    pollingTargetFlag |= tempPollingTargetFlag;
+                }
+                mPollingTargetFlag = pollingTargetFlag;
+            }
         }
     }
 
@@ -136,7 +216,7 @@ public class UhAccessHelper {
      * @param data
      * @return
      */
-    public boolean readPhotoSensor(PhotoSensorData data) {
+    public boolean readPhotoReflector(PhotoReflectorData data) {
         boolean ret = false;
 
         if (data != null) {
@@ -308,9 +388,15 @@ public class UhAccessHelper {
         switch (mAccessStatus) {
             case PairedUnlimitedHand:
             case ConnectedUnlimitedHand:
-                if (mCurrentSharpnessLevel < MAX_EMS_SHARPNESS_LEVEL) {
+                synchronized (mSendSemaphore) {
+                    mSendSemaphore.initialize();
+
                     if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.UpSharpnessLevel.getLineCode()))) {
-                        mCurrentSharpnessLevel += CHANGE_EMS_SHARPNESS_LEVEL;
+                        mSendSemaphore.start();
+
+                        SharpnessData data = new SharpnessData();
+                        data.expandRawData(readData());
+                        mCurrentSharpnessLevel = data.getValue(0);
                     }
                 }
                 break;
@@ -325,9 +411,15 @@ public class UhAccessHelper {
         switch (mAccessStatus) {
             case PairedUnlimitedHand:
             case ConnectedUnlimitedHand:
-                if (MIN_EMS_SHARPNESS_LEVEL < mCurrentSharpnessLevel) {
+                synchronized (mSendSemaphore) {
+                    mSendSemaphore.initialize();
+
                     if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.DownSharpnessLevel.getLineCode()))) {
-                        mCurrentSharpnessLevel -= CHANGE_EMS_SHARPNESS_LEVEL;
+                        mSendSemaphore.start();
+
+                        SharpnessData data = new SharpnessData();
+                        data.expandRawData(readData());
+                        mCurrentSharpnessLevel = data.getValue(0);
                     }
                 }
                 break;
@@ -346,9 +438,15 @@ public class UhAccessHelper {
         switch (mAccessStatus) {
             case PairedUnlimitedHand:
             case ConnectedUnlimitedHand:
-                if (mCurrentVoltageLevel < MAX_EMS_VOLTAGE_LEVEL) {
+                synchronized (mSendSemaphore) {
+                    mSendSemaphore.initialize();
+
                     if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.UpVoltageLevel.getLineCode()))) {
-                        mCurrentVoltageLevel += CHANGE_EMS_VOLTAGE_LEVEL;
+                        mSendSemaphore.start();
+
+                        VoltageData data = new VoltageData();
+                        data.expandRawData(readData());
+                        mCurrentVoltageLevel = data.getValue(0);
                     }
                 }
                 break;
@@ -363,14 +461,15 @@ public class UhAccessHelper {
         switch (mAccessStatus) {
             case PairedUnlimitedHand:
             case ConnectedUnlimitedHand:
-                if (MIN_EMS_VOLTAGE_LEVEL < mCurrentVoltageLevel) {
-                    synchronized (mSendSemaphore) {
-                        mSendSemaphore.initialize();
+                synchronized (mSendSemaphore) {
+                    mSendSemaphore.initialize();
 
-                        if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.DownVoltageLevel.getLineCode()))) {
-                            mSendSemaphore.start();
-                            mCurrentVoltageLevel -= CHANGE_EMS_VOLTAGE_LEVEL;
-                        }
+                    if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.DownVoltageLevel.getLineCode()))) {
+                        mSendSemaphore.start();
+
+                        VoltageData data = new VoltageData();
+                        data.expandRawData(readData());
+                        mCurrentVoltageLevel = data.getValue(0);
                     }
                 }
                 break;
@@ -422,7 +521,7 @@ public class UhAccessHelper {
         while (continueConnection) {
             switch (mAccessStatus) {
                 case Init:
-                    if(mBtHelperNotifyThread != null){
+                    if (mBtHelperNotifyThread != null) {
                         mBtHelperNotifyThread.quit();
                     }
                     mBtHelperNotifyThread = new HandlerThread(TAG);
@@ -525,6 +624,68 @@ public class UhAccessHelper {
         @Override
         public void onSendDataResult(int result, BluetoothDevice device, byte[] data, int offset, int length) {
             mSendSemaphore.stop();
+        }
+    };
+
+    private Runnable mPollingSensorRunnable = new Runnable() {
+        @Override
+        public void run() {
+            OnSensorPollingListener[] toArrayTypeListener = new OnSensorPollingListener[0];
+            AbstractSensorData[] toArrayTypeData = new AbstractSensorData[0];
+            PhotoReflectorData photoReflectorData = new PhotoReflectorData();
+            AngleData angleData = new AngleData();
+            TemperatureData temperatureData = new TemperatureData();
+            AccelerationData accelerationData = new AccelerationData();
+            GyroData gyroData = new GyroData();
+            QuaternionData quaternionData = new QuaternionData();
+            ArrayList<AbstractSensorData> retList = new ArrayList<>();
+
+            while (mSensorPollingThread != null) {
+                long startTimeMS = System.currentTimeMillis();
+                long intervalMS = 1000 / mPollingRatePerSecond;
+                int pollingTargetFlag = mPollingTargetFlag;
+
+                retList.clear();
+
+                if ((pollingTargetFlag & POLLING_PHOTO_REFLECTOR) == POLLING_PHOTO_REFLECTOR) {
+                    readPhotoReflector(photoReflectorData);
+                    retList.add(photoReflectorData);
+                }
+                if ((pollingTargetFlag & POLLING_ANGLE) == POLLING_ANGLE) {
+                    readAngle(angleData);
+                    retList.add(angleData);
+                }
+                if ((pollingTargetFlag & POLLING_TEMPERATURE) == POLLING_TEMPERATURE) {
+                    readTemperature(temperatureData);
+                    retList.add(temperatureData);
+                }
+                if ((pollingTargetFlag & POLLING_ACCELERATION) == POLLING_ACCELERATION) {
+                    readAcceleration(accelerationData);
+                    retList.add(accelerationData);
+                }
+                if ((pollingTargetFlag & POLLING_GYRO) == POLLING_GYRO) {
+                    readGyro(gyroData);
+                    retList.add(gyroData);
+                }
+                if ((pollingTargetFlag & POLLING_QUATERNION) == POLLING_QUATERNION) {
+                    readQuaternion(quaternionData);
+                    retList.add(quaternionData);
+                }
+
+                OnSensorPollingListener[] listenerArray = mPollingListenerMap.keySet().toArray(toArrayTypeListener);
+                AbstractSensorData[] dataArray = retList.toArray(toArrayTypeData);
+                for (OnSensorPollingListener listener : listenerArray) {
+                    listener.onPollSensor(dataArray);
+                }
+
+                long sleepTimeMS = intervalMS - (System.currentTimeMillis() - startTimeMS);
+                if (sleepTimeMS > 0) {
+                    try {
+                        Thread.sleep(sleepTimeMS);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
         }
     };
 }

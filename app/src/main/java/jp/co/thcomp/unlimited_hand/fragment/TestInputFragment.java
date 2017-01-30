@@ -18,7 +18,7 @@ import jp.co.thcomp.unlimitedhand.AbstractSensorData;
 import jp.co.thcomp.unlimitedhand.AccelerationData;
 import jp.co.thcomp.unlimitedhand.AngleData;
 import jp.co.thcomp.unlimitedhand.GyroData;
-import jp.co.thcomp.unlimitedhand.PhotoSensorData;
+import jp.co.thcomp.unlimitedhand.PhotoReflectorData;
 import jp.co.thcomp.unlimitedhand.QuaternionData;
 import jp.co.thcomp.unlimitedhand.TemperatureData;
 import jp.co.thcomp.util.ThreadUtil;
@@ -28,7 +28,7 @@ public class TestInputFragment extends AbstractTestFragment {
     private static final int DEFAULT_READ_INTERVAL_MS = (int) (1000 / DEFAULT_READ_FPS);
 
     private enum READ_SENSOR {
-        PHOTO(R.id.cbPhotoSensor, PhotoSensorData.class,
+        PHOTO(R.id.cbPhotoSensor, PhotoReflectorData.class,
                 R.id.tvPhotoSensor0, R.id.tvPhotoSensor1, R.id.tvPhotoSensor2, R.id.tvPhotoSensor3,
                 R.id.tvPhotoSensor4, R.id.tvPhotoSensor5, R.id.tvPhotoSensor6, R.id.tvPhotoSensor7),
         ANGLE(R.id.cbAngle, AngleData.class,
@@ -55,14 +55,14 @@ public class TestInputFragment extends AbstractTestFragment {
     private SensorValueDatabase mDatabase;
     private ReadInputSensorTask mReadInputSensorTask;
     private EditText mMarkDescription;
-    private PhotoSensorData mPhotoSensorData = new PhotoSensorData();
+    private PhotoReflectorData mPhotoReflectorData = new PhotoReflectorData();
     private AngleData mAngleData = new AngleData();
     private TemperatureData mTemperatureData = new TemperatureData();
     private AccelerationData mAccelerationData = new AccelerationData();
     private GyroData mGyroData = new GyroData();
     private QuaternionData mQuaternionData = new QuaternionData();
     private TextView[][] mTvReadSensorValues = {
-            new TextView[PhotoSensorData.PHOTO_SENSOR_NUM],
+            new TextView[PhotoReflectorData.PHOTO_REFLECTOR_NUM],
             new TextView[AngleData.ANGLE_NUM],
             new TextView[TemperatureData.TEMPERATURE_NUM],
             new TextView[AccelerationData.ACCELERATION_NUM],
@@ -70,7 +70,7 @@ public class TestInputFragment extends AbstractTestFragment {
             new TextView[QuaternionData.QUATERNION_NUM],
     };
     private AbstractSensorData[] mSensorDataArray = {
-            mPhotoSensorData,
+            mPhotoReflectorData,
             mAngleData,
             mTemperatureData,
             mAccelerationData,
@@ -228,8 +228,8 @@ public class TestInputFragment extends AbstractTestFragment {
                 for (int i = 0, size = tempReadSensors.length; i < size; i++) {
                     switch (tempReadSensors[i]) {
                         case PHOTO:
-                            if (mUHAccessHelper.readPhotoSensor(mPhotoSensorData)) {
-                                mDatabase.insertData(mPhotoSensorData);
+                            if (mUHAccessHelper.readPhotoReflector(mPhotoReflectorData)) {
+                                mDatabase.insertData(mPhotoReflectorData);
                             }
                             break;
                         case ANGLE:

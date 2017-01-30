@@ -3,7 +3,6 @@ package jp.co.thcomp.unlimited_hand;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.DatabaseErrorHandler;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
@@ -14,7 +13,7 @@ import jp.co.thcomp.unlimitedhand.AbstractSensorData;
 import jp.co.thcomp.unlimitedhand.AccelerationData;
 import jp.co.thcomp.unlimitedhand.AngleData;
 import jp.co.thcomp.unlimitedhand.GyroData;
-import jp.co.thcomp.unlimitedhand.PhotoSensorData;
+import jp.co.thcomp.unlimitedhand.PhotoReflectorData;
 import jp.co.thcomp.unlimitedhand.QuaternionData;
 import jp.co.thcomp.unlimitedhand.TemperatureData;
 
@@ -25,7 +24,7 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
     private static final String COLUMN_SENSOR_VALUE_PREFIX = "value_";
 
     private static final Class[] BASE_DATA_CLASS_ARRAY = {
-            PhotoSensorData.class,
+            PhotoReflectorData.class,
             AngleData.class,
             TemperatureData.class,
             AccelerationData.class,
