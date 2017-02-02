@@ -19,9 +19,13 @@ import jp.co.thcomp.unlimitedhand.TemperatureData;
 
 public class SensorValueDatabase extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "sensor_value.db";
-    private static final String COLUMN_CDATE = "cdate";
-    private static final String COLUMN_DESCRIPTION = "description";
-    private static final String COLUMN_SENSOR_VALUE_PREFIX = "value_";
+    public static final String COLUMN_CDATE = "cdate";
+    public static final String COLUMN_DESCRIPTION = "description";
+    public static final String COLUMN_SENSOR_VALUE_PREFIX = "value_";
+
+    public static final String getSensorValueColumnName(int index) {
+        return String.format("%1$s%2$02d", COLUMN_SENSOR_VALUE_PREFIX, index);
+    }
 
     private static final Class[] BASE_DATA_CLASS_ARRAY = {
             PhotoReflectorData.class,
@@ -76,7 +80,7 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
 
         if (dataSensorNum != null) {
             for (int i = 0; i < dataSensorNum; i++) {
-                queryBuilder.append(String.format(", %1$s%2$02d real", COLUMN_SENSOR_VALUE_PREFIX, i));
+                queryBuilder.append(String.format(", %s real", getSensorValueColumnName(i)));
             }
         }
 
@@ -94,9 +98,9 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
             Object value = data.getValue(i);
             if (value != null) {
                 if (value.getClass() == Integer.class || value.getClass() == int.class) {
-                    values.put(String.format("%1$s%2$02d", COLUMN_SENSOR_VALUE_PREFIX, i), (int) data.getValue(i));
+                    values.put(getSensorValueColumnName(i), (int) data.getValue(i));
                 } else if (value.getClass() == Float.class || value.getClass() == float.class) {
-                    values.put(String.format("%1$s%2$02d", COLUMN_SENSOR_VALUE_PREFIX, i), (float) data.getValue(i));
+                    values.put(getSensorValueColumnName(i), (float) data.getValue(i));
                 }
             }
         }

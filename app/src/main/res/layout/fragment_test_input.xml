@@ -109,7 +109,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1.0"
-                    android:hint="input description for mark"/>
+                    android:hint="input description for mark\n(default: incremental count)"/>
                 <Button
                     android:id="@+id/btnInsertMark"
                     android:layout_width="wrap_content"
@@ -388,11 +388,26 @@
             android:layout_width="match_parent"
             android:layout_height="8dp" />
 
-        <Button
-            android:id="@+id/btnSendDataByMail"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="send data by mail"/>
+            android:weightSum="1.0"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etAddress"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:hint="input mail address"
+                android:layout_weight="1.0"/>
+
+            <Button
+                android:id="@+id/btnSendDataByMail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="send"/>
+
+        </LinearLayout>
 
         <Button
             android:id="@+id/btnClearData"
