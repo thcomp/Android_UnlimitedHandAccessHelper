@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.zip.GZIPOutputStream;
 
 import jp.co.thcomp.unlimited_hand.R;
@@ -40,7 +41,7 @@ import jp.co.thcomp.util.ToastUtil;
 
 public class TestInputFragment extends AbstractTestFragment {
     private static final String TAG = TestInputFragment.class.getSimpleName();
-    private static final String TEMPORARY_ZIP_FILE = "send_data.zip";
+    private static final String TEMPORARY_ZIP_FILE = "sensor_data_%1$04d%2$02d%3$02d_%4$02d%5$02d%6$02d.zip";
     private static final String PREF_LAST_MAIL_ADDRESS = "PREF_LAST_MAIL_ADDRESS";
     private static final int REQUEST_CODE_WRITE_STORAGE = "REQUEST_CODE_WRITE_STORAGE".hashCode() & 0x0000FFFF;
     private static final int DEFAULT_READ_FPS = 30;
@@ -89,7 +90,8 @@ public class TestInputFragment extends AbstractTestFragment {
             new TextView[GyroData.GYRO_NUM],
             new TextView[QuaternionData.QUATERNION_NUM],
     };
-    private SendSensorDataTask mSendSensorDataTask = null;
+    private SaveSensorDataTask mSaveSensorDataTask = null;
+    private ClearSensorDataTask mClearSensorDataTask = null;
     private AbstractSensorData[] mSensorDataArray = {
             mPhotoReflectorData,
             mAngleData,
@@ -138,6 +140,7 @@ public class TestInputFragment extends AbstractTestFragment {
         mRootView.findViewById(R.id.btnStopInput).setOnClickListener(mBtnClickListener);
         mRootView.findViewById(R.id.btnInsertMark).setOnClickListener(mBtnClickListener);
         mRootView.findViewById(R.id.btnSendDataByMail).setOnClickListener(mBtnClickListener);
+        mRootView.findViewById(R.id.btnSaveData).setOnClickListener(mBtnClickListener);
         mRootView.findViewById(R.id.btnClearData).setOnClickListener(mBtnClickListener);
 
         for (int i = 0, sizeI = READ_SENSOR.values().length; i < sizeI; i++) {
@@ -195,9 +198,9 @@ public class TestInputFragment extends AbstractTestFragment {
 
     private void sendDataByMail() {
         EditText etAddress = (EditText) mRootView.findViewById(R.id.etAddress);
-        String address = etAddress.getText().toString();
+        final String address = etAddress.getText().toString();
 
-        if (mSendSensorDataTask == null) {
+        if (mSaveSensorDataTask == null) {
             if (address != null && address.length() > 0) {
                 boolean needRequestPermission = false;
 
@@ -210,8 +213,13 @@ public class TestInputFragment extends AbstractTestFragment {
                 if (needRequestPermission) {
                     requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE_WRITE_STORAGE);
                 } else {
-                    mSendSensorDataTask = new SendSensorDataTask();
-                    mSendSensorDataTask.execute(address);
+                    mSaveSensorDataTask = new SaveSensorDataTask(new OnSaveDataFinishedListener() {
+                        @Override
+                        public void onSaveDataFinished(File savedDataFile) {
+                            startActivity(IntentUtil.getLaunchMailerIntent(address, "sensor data", "", savedDataFile));
+                        }
+                    });
+                    mSaveSensorDataTask.execute();
                 }
             } else {
                 ToastUtil.showToast(getActivity(), "input \"to\" mail address", Toast.LENGTH_SHORT);
@@ -219,8 +227,35 @@ public class TestInputFragment extends AbstractTestFragment {
         }
     }
 
-    private void clearData() {
+    private void saveData() {
+        if (mSaveSensorDataTask == null) {
+            boolean needRequestPermission = false;
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (getActivity().checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+                    needRequestPermission = true;
+                }
+            }
+
+            if (needRequestPermission) {
+                requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE_WRITE_STORAGE);
+            } else {
+                mSaveSensorDataTask = new SaveSensorDataTask(new OnSaveDataFinishedListener() {
+                    @Override
+                    public void onSaveDataFinished(File savedDataFile) {
+                        ToastUtil.showToast(getActivity(), "saved: \n" + savedDataFile.getAbsolutePath(), Toast.LENGTH_LONG);
+                    }
+                });
+                mSaveSensorDataTask.execute();
+            }
+        }
+    }
+
+    private void clearData() {
+        if (mClearSensorDataTask == null) {
+            mClearSensorDataTask = new ClearSensorDataTask();
+            mClearSensorDataTask.execute();
+        }
     }
 
     private View.OnClickListener mBtnClickListener = new View.OnClickListener() {
@@ -246,6 +281,9 @@ public class TestInputFragment extends AbstractTestFragment {
                     break;
                 case R.id.btnSendDataByMail:
                     sendDataByMail();
+                    break;
+                case R.id.btnSaveData:
+                    saveData();
                     break;
                 case R.id.btnClearData:
                     clearData();
@@ -341,8 +379,17 @@ public class TestInputFragment extends AbstractTestFragment {
         }
     }
 
-    private class SendSensorDataTask extends AsyncTask<String, Void, Void> {
+    private interface OnSaveDataFinishedListener {
+        void onSaveDataFinished(File savedDataFile);
+    }
+
+    private class SaveSensorDataTask extends AsyncTask<Void, Void, File> {
         private ProgressDialog mProgressDialog = null;
+        private OnSaveDataFinishedListener mListener;
+
+        public SaveSensorDataTask(OnSaveDataFinishedListener listener) {
+            mListener = listener;
+        }
 
         @Override
         protected void onPreExecute() {
@@ -355,15 +402,26 @@ public class TestInputFragment extends AbstractTestFragment {
         }
 
         @Override
-        protected Void doInBackground(String... mailAddressArray) {
+        protected File doInBackground(Void... aVoid) {
             FileOutputStream outputStream = null;
             GZIPOutputStream gzipOutputStream = null;
+            File temporaryFile = null;
+
             try {
                 File temporaryFileDir = new File(getActivity().getExternalCacheDir().getAbsolutePath());
-                if(!temporaryFileDir.exists()){
+                if (!temporaryFileDir.exists()) {
                     temporaryFileDir.mkdirs();
                 }
-                File temporaryFile = new File(temporaryFileDir.getAbsolutePath() + "/" + TEMPORARY_ZIP_FILE);
+                Calendar calendar = Calendar.getInstance();
+                temporaryFile = new File(
+                        temporaryFileDir.getAbsolutePath() + "/" +
+                                String.format(TEMPORARY_ZIP_FILE,
+                                        calendar.get(Calendar.YEAR),
+                                        calendar.get(Calendar.MONTH) + 1,
+                                        calendar.get(Calendar.DAY_OF_MONTH),
+                                        calendar.get(Calendar.HOUR_OF_DAY),
+                                        calendar.get(Calendar.MINUTE),
+                                        calendar.get(Calendar.SECOND)));
                 outputStream = new FileOutputStream(temporaryFile);
                 gzipOutputStream = new GZIPOutputStream(outputStream);
 
@@ -424,7 +482,7 @@ public class TestInputFragment extends AbstractTestFragment {
 
                         dataLineBuilder.append(targetDataClass.getSimpleName());
 
-                        if(descriptionIndex == null){
+                        if (descriptionIndex == null) {
                             descriptionIndex = targetCursor.getColumnIndex(SensorValueDatabase.COLUMN_DESCRIPTION);
                         }
                         String description = targetCursor.getString(descriptionIndex);
@@ -466,7 +524,6 @@ public class TestInputFragment extends AbstractTestFragment {
                 }
 
                 temporaryFile.setReadable(true);
-                startActivity(IntentUtil.getLaunchMailerIntent(mailAddressArray[0], "sensor data", "", temporaryFile));
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -488,6 +545,44 @@ public class TestInputFragment extends AbstractTestFragment {
                     }
                 }
             }
+            return temporaryFile;
+        }
+
+        @Override
+        protected void onPostExecute(File aVoid) {
+            super.onPostExecute(aVoid);
+            mProgressDialog.dismiss();
+            mSaveSensorDataTask = null;
+
+            if (mListener != null) {
+                mListener.onSaveDataFinished(aVoid);
+            }
+        }
+    }
+
+    private class ClearSensorDataTask extends AsyncTask<Void, Void, Void> {
+        private ProgressDialog mProgressDialog = null;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            mProgressDialog = new ProgressDialog(getActivity());
+            mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            mProgressDialog.setCanceledOnTouchOutside(false);
+            mProgressDialog.show();
+        }
+
+        @Override
+        protected Void doInBackground(Void... aVoid) {
+            READ_SENSOR[] readSensorArray = READ_SENSOR.values();
+            ArrayList<Class> readSensorList = new ArrayList<Class>();
+
+            for (READ_SENSOR readSensor : readSensorArray) {
+                readSensorList.add(readSensor.mDataClass);
+            }
+
+            mDatabase.clearData(readSensorList.toArray(new Class[0]));
             return null;
         }
 
@@ -495,7 +590,7 @@ public class TestInputFragment extends AbstractTestFragment {
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
             mProgressDialog.dismiss();
-            mSendSensorDataTask = null;
+            mClearSensorDataTask = null;
         }
     }
 
