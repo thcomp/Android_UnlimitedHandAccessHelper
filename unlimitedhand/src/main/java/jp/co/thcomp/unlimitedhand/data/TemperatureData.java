@@ -1,4 +1,4 @@
-package jp.co.thcomp.unlimitedhand;
+package jp.co.thcomp.unlimitedhand.data;
 
 public class TemperatureData extends AbstractSensorFloatData {
     public static final int TEMPERATURE_NUM = 1;

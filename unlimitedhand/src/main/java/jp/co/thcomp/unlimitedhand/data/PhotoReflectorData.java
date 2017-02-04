@@ -1,4 +1,4 @@
-package jp.co.thcomp.unlimitedhand;
+package jp.co.thcomp.unlimitedhand.data;
 
 public class PhotoReflectorData extends AbstractSensorIntegerData {
     public static final int PHOTO_REFLECTOR_NUM = 8;

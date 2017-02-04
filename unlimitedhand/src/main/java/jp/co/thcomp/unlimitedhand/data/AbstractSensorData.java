@@ -1,4 +1,4 @@
-package jp.co.thcomp.unlimitedhand;
+package jp.co.thcomp.unlimitedhand.data;
 
 public abstract class AbstractSensorData<DataType> {
     protected final String channelData[] = new String[getSensorNum()];

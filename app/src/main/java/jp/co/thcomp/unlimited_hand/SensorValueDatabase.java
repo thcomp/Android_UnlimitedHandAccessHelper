@@ -9,13 +9,14 @@ import android.database.sqlite.SQLiteOpenHelper;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
-import jp.co.thcomp.unlimitedhand.AbstractSensorData;
-import jp.co.thcomp.unlimitedhand.AccelerationData;
-import jp.co.thcomp.unlimitedhand.AngleData;
-import jp.co.thcomp.unlimitedhand.GyroData;
-import jp.co.thcomp.unlimitedhand.PhotoReflectorData;
-import jp.co.thcomp.unlimitedhand.QuaternionData;
-import jp.co.thcomp.unlimitedhand.TemperatureData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedAccelerationData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedAngleData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedGyroData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedPhotoReflectorData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedQuaternionData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedTemperatureData;
+import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedValue;
 
 public class SensorValueDatabase extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "sensor_value.db";
@@ -28,12 +29,12 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
     }
 
     private static final Class[] BASE_DATA_CLASS_ARRAY = {
-            PhotoReflectorData.class,
-            AngleData.class,
-            TemperatureData.class,
-            AccelerationData.class,
-            GyroData.class,
-            QuaternionData.class,
+            CalibratedPhotoReflectorData.class,
+            CalibratedAngleData.class,
+            CalibratedTemperatureData.class,
+            CalibratedAccelerationData.class,
+            CalibratedGyroData.class,
+            CalibratedQuaternionData.class,
     };
 
     public SensorValueDatabase(Context context, int version) {
@@ -98,9 +99,17 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
             Object value = data.getValue(i);
             if (value != null) {
                 if (value.getClass() == Integer.class || value.getClass() == int.class) {
-                    values.put(getSensorValueColumnName(i), (int) data.getValue(i));
+                    if (data instanceof CalibratedValue) {
+                        values.put(getSensorValueColumnName(i), (int) ((CalibratedValue) data).getCalibratedValue(i));
+                    } else {
+                        values.put(getSensorValueColumnName(i), (int) data.getValue(i));
+                    }
                 } else if (value.getClass() == Float.class || value.getClass() == float.class) {
-                    values.put(getSensorValueColumnName(i), (float) data.getValue(i));
+                    if (data instanceof CalibratedValue) {
+                        values.put(getSensorValueColumnName(i), (float) ((CalibratedValue) data).getCalibratedValue(i));
+                    } else {
+                        values.put(getSensorValueColumnName(i), (float) data.getValue(i));
+                    }
                 }
             }
         }

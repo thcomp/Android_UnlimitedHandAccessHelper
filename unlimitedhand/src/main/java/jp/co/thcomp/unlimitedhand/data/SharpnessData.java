@@ -1,4 +1,4 @@
-package jp.co.thcomp.unlimitedhand;
+package jp.co.thcomp.unlimitedhand.data;
 
 public class SharpnessData extends AbstractSensorIntegerData {
     public static final int SHARPNESS_NUM = 1;

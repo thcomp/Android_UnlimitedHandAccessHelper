@@ -1,4 +1,4 @@
-package jp.co.thcomp.unlimitedhand;
+package jp.co.thcomp.unlimitedhand.data;
 
 public class AngleData extends AbstractSensorIntegerData {
     public static final int ANGLE_NUM = 3;

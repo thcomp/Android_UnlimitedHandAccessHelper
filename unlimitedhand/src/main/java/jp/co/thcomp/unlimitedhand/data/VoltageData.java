@@ -1,4 +1,4 @@
-package jp.co.thcomp.unlimitedhand;
+package jp.co.thcomp.unlimitedhand.data;
 
 public class VoltageData extends AbstractSensorIntegerData {
     public static final int VOLTAGE_NUM = 1;

@@ -15,6 +15,22 @@ import java.util.List;
 import java.util.Set;
 
 import jp.co.thcomp.bluetoothhelper.BluetoothAccessHelper;
+import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
+import jp.co.thcomp.unlimitedhand.data.AccelerationData;
+import jp.co.thcomp.unlimitedhand.data.AngleData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedAccelerationData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedAngleData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedGyroData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedPhotoReflectorData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedQuaternionData;
+import jp.co.thcomp.unlimitedhand.data.CalibratedTemperatureData;
+import jp.co.thcomp.unlimitedhand.data.CalibrationData;
+import jp.co.thcomp.unlimitedhand.data.GyroData;
+import jp.co.thcomp.unlimitedhand.data.PhotoReflectorData;
+import jp.co.thcomp.unlimitedhand.data.QuaternionData;
+import jp.co.thcomp.unlimitedhand.data.SharpnessData;
+import jp.co.thcomp.unlimitedhand.data.TemperatureData;
+import jp.co.thcomp.unlimitedhand.data.VoltageData;
 import jp.co.thcomp.util.LogUtil;
 import jp.co.thcomp.util.ThreadUtil;
 
@@ -23,12 +39,6 @@ public class UhAccessHelper {
     private static final String DEFAULT_UH_NAME_PATTERN = "RNBT-[\\w]{4}";
     private static final int DEFAULT_EMS_VOLTAGE_LEVEL = 8;
     private static final int DEFAULT_EMS_SHARPNESS_LEVEL = 15;
-    //    private static final int MAX_EMS_VOLTAGE_LEVEL = 12;
-//    private static final int MIN_EMS_VOLTAGE_LEVEL = 0;
-//    private static final int CHANGE_EMS_VOLTAGE_LEVEL = 1;
-//    private static final int MAX_EMS_SHARPNESS_LEVEL = 20;
-//    private static final int MIN_EMS_SHARPNESS_LEVEL = 0;
-//    private static final int CHANGE_EMS_SHARPNESS_LEVEL = 5;
     private static final String LINE_SEPARATOR = "\n";
 
     public static final int DEFAULT_POLLING_RATE_PER_SECOND = 30;
@@ -40,6 +50,11 @@ public class UhAccessHelper {
     public static final int POLLING_GYRO = 16;
     public static final int POLLING_QUATERNION = 32;
     public static final int POLLING_ALL = POLLING_PHOTO_REFLECTOR | POLLING_ANGLE | POLLING_TEMPERATURE | POLLING_ACCELERATION | POLLING_GYRO | POLLING_QUATERNION;
+    private static boolean sDebug = false;
+
+    public static void enableDebug(boolean enable) {
+        sDebug = enable;
+    }
 
     public interface OnSensorPollingListener {
         void onPollSensor(AbstractSensorData[] sensorDataArray);
@@ -111,6 +126,10 @@ public class UhAccessHelper {
     private Thread mSensorPollingThread;
     private final HashMap<OnSensorPollingListener, Integer> mPollingListenerMap = new HashMap<OnSensorPollingListener, Integer>();
     private int mPollingTargetFlag = 0;
+    private CalibrationData mCalibrationData;
+    private UhCalibrator mCalibrator;
+    private CalibrationStatus mCalibrationStatus = CalibrationStatus.Init;
+    private final ArrayList<OnCalibrationStatusChangeListener> mOnCalibrationStatusChangeListenerList = new ArrayList<OnCalibrationStatusChangeListener>();
 
     public UhAccessHelper(Context context) {
         if (context == null) {
@@ -174,6 +193,68 @@ public class UhAccessHelper {
         if (mBtHelperNotifyThread != null) {
             mBtHelperNotifyThread.quit();
             mBtHelperNotifyThread = null;
+        }
+    }
+
+    public boolean isCalibrated() {
+        return mCalibrationStatus == CalibrationStatus.CalibrateSuccess;
+    }
+
+    public void startCalibration(Context context, final OnCalibrationStatusChangeListener listener) {
+        synchronized (this) {
+            switch (mCalibrationStatus) {
+                case Init:
+                case CalibrateFail:
+                    mCalibrationStatus = CalibrationStatus.Calibrating;
+                    mCalibrator = new UhCalibrator(mContext, this, sDebug);
+                    mOnCalibrationStatusChangeListenerList.add(listener);
+                    mCalibrator.setOnCalibrationStatusChangeListener(new OnCalibrationStatusChangeListener() {
+                        @Override
+                        public void onCalibrationStatusChange(CalibrationStatus status) {
+                            mCalibrationStatus = status;
+
+                            synchronized (UhAccessHelper.this) {
+                                try {
+                                    if (status == CalibrationStatus.CalibrateSuccess) {
+                                        mCalibrationData = new CalibrationData();
+                                        mCalibrator.getCalibrationData(mCalibrationData);
+                                    }
+
+                                    for (OnCalibrationStatusChangeListener onCalibrationStatusChangeListener : mOnCalibrationStatusChangeListenerList) {
+                                        onCalibrationStatusChangeListener.onCalibrationStatusChange(status);
+                                    }
+                                } finally {
+                                    mCalibrator = null;
+                                }
+                            }
+                        }
+                    });
+                    mCalibrator.startCalibration();
+                    break;
+                case CalibrateSuccess:
+                    if (listener != null) {
+                        ThreadUtil.runOnMainThread(context, new Runnable() {
+                            @Override
+                            public void run() {
+                                listener.onCalibrationStatusChange(mCalibrationStatus);
+                            }
+                        });
+                    }
+                    break;
+                case Calibrating:
+                    mOnCalibrationStatusChangeListenerList.add(listener);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    public void stopCalibration() {
+        synchronized (this) {
+            if (mCalibrator != null) {
+                mCalibrator.stopCalibration();
+            }
         }
     }
 
@@ -632,12 +713,12 @@ public class UhAccessHelper {
         public void run() {
             OnSensorPollingListener[] toArrayTypeListener = new OnSensorPollingListener[0];
             AbstractSensorData[] toArrayTypeData = new AbstractSensorData[0];
-            PhotoReflectorData photoReflectorData = new PhotoReflectorData();
-            AngleData angleData = new AngleData();
-            TemperatureData temperatureData = new TemperatureData();
-            AccelerationData accelerationData = new AccelerationData();
-            GyroData gyroData = new GyroData();
-            QuaternionData quaternionData = new QuaternionData();
+            CalibratedPhotoReflectorData photoReflectorData = new CalibratedPhotoReflectorData();
+            CalibratedAngleData angleData = new CalibratedAngleData();
+            CalibratedTemperatureData temperatureData = new CalibratedTemperatureData();
+            CalibratedAccelerationData accelerationData = new CalibratedAccelerationData();
+            CalibratedGyroData gyroData = new CalibratedGyroData();
+            CalibratedQuaternionData quaternionData = new CalibratedQuaternionData();
             ArrayList<AbstractSensorData> retList = new ArrayList<>();
 
             while (mSensorPollingThread != null) {
@@ -649,10 +730,20 @@ public class UhAccessHelper {
 
                 if ((pollingTargetFlag & POLLING_PHOTO_REFLECTOR) == POLLING_PHOTO_REFLECTOR) {
                     readPhotoReflector(photoReflectorData);
+                    if (mCalibrationData != null) {
+                        photoReflectorData.setCalibrateBaseData(mCalibrationData.mPRAveArray);
+                    }
                     retList.add(photoReflectorData);
                 }
                 if ((pollingTargetFlag & POLLING_ANGLE) == POLLING_ANGLE) {
                     readAngle(angleData);
+                    if (mCalibrationData != null) {
+                        Integer[] baseDataArray = new Integer[AngleData.ANGLE_NUM];
+                        for (int i = 0, size = baseDataArray.length; i < size; i++) {
+                            baseDataArray[i] = mCalibrationData.mAngleFlatAve;
+                        }
+                        angleData.setCalibrateBaseData(baseDataArray);
+                    }
                     retList.add(angleData);
                 }
                 if ((pollingTargetFlag & POLLING_TEMPERATURE) == POLLING_TEMPERATURE) {
