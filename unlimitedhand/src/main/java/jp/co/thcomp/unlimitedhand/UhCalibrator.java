@@ -1,7 +1,6 @@
 package jp.co.thcomp.unlimitedhand;
 
 import android.content.Context;
-import android.os.AsyncTask;
 
 import java.util.Arrays;
 
@@ -73,7 +72,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
                 int[] photoReflectorSums = new int[PhotoReflectorData.PHOTO_REFLECTOR_NUM];
 
                 for (int i = 0; i < PhotoReflectorData.PHOTO_REFLECTOR_NUM; i++) {
-                    photoReflectorSums[i] += photoReflectorData.getValue(i);
+                    photoReflectorSums[i] += photoReflectorData.getRawValue(i);
                     data.mPRAveArray[i] = photoReflectorSums[i] / mCount;
                 }
                 mCount++;
@@ -90,7 +89,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
                 for (int i = 1; i < mAngleFlatSize; i++) {
                     mAngleFlat[i - 1] = mAngleFlat[i];
                 }
-                mAngleFlat[mAngleFlatSize - 1] = angleData.getValue(0);
+                mAngleFlat[mAngleFlatSize - 1] = angleData.getRawValue(0);
                 data.mAngleFlatAve = 0;
                 for (int i = 0; i < mAngleFlatSize; i++) {
                     data.mAngleFlatAve += mAngleFlat[i];

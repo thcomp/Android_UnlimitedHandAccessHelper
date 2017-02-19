@@ -28,14 +28,14 @@ import jp.co.thcomp.unlimited_hand.R;
 import jp.co.thcomp.unlimited_hand.SensorValueDatabase;
 import jp.co.thcomp.unlimitedhand.CalibrationStatus;
 import jp.co.thcomp.unlimitedhand.OnCalibrationStatusChangeListener;
-import jp.co.thcomp.unlimitedhand.data.CalibratedAccelerationData;
-import jp.co.thcomp.unlimitedhand.data.CalibratedAngleData;
-import jp.co.thcomp.unlimitedhand.data.CalibratedGyroData;
-import jp.co.thcomp.unlimitedhand.data.CalibratedPhotoReflectorData;
-import jp.co.thcomp.unlimitedhand.data.CalibratedQuaternionData;
-import jp.co.thcomp.unlimitedhand.data.CalibratedTemperatureData;
 import jp.co.thcomp.unlimitedhand.UhGestureDetector;
 import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
+import jp.co.thcomp.unlimitedhand.data.AccelerationData;
+import jp.co.thcomp.unlimitedhand.data.AngleData;
+import jp.co.thcomp.unlimitedhand.data.GyroData;
+import jp.co.thcomp.unlimitedhand.data.PhotoReflectorData;
+import jp.co.thcomp.unlimitedhand.data.QuaternionData;
+import jp.co.thcomp.unlimitedhand.data.TemperatureData;
 import jp.co.thcomp.util.IntentUtil;
 import jp.co.thcomp.util.LogUtil;
 import jp.co.thcomp.util.PreferenceUtil;
@@ -44,24 +44,24 @@ import jp.co.thcomp.util.ToastUtil;
 
 public class TestInputFragment extends AbstractTestFragment {
     private static final String TAG = TestInputFragment.class.getSimpleName();
-    private static final String TEMPORARY_ZIP_FILE = "sensor_data_%1$04d%2$02d%3$02d_%4$02d%5$02d%6$02d.zip";
+    private static final String TEMPORARY_ZIP_FILE = "sensor_data_%1$04d%2$02d%3$02d_%4$02d%5$02d%6$02d.gzip";
     private static final String PREF_LAST_MAIL_ADDRESS = "PREF_LAST_MAIL_ADDRESS";
     private static final int REQUEST_CODE_WRITE_STORAGE = "REQUEST_CODE_WRITE_STORAGE".hashCode() & 0x0000FFFF;
     private static final int DEFAULT_READ_FPS = 30;
     private static final int DEFAULT_READ_INTERVAL_MS = (int) (1000 / DEFAULT_READ_FPS);
 
     private enum READ_SENSOR {
-        PHOTO(R.id.cbPhotoSensor, CalibratedPhotoReflectorData.class,
+        PHOTO(R.id.cbPhotoSensor, PhotoReflectorData.class,
                 R.id.tvPhotoSensor0, R.id.tvPhotoSensor1, R.id.tvPhotoSensor2, R.id.tvPhotoSensor3,
                 R.id.tvPhotoSensor4, R.id.tvPhotoSensor5, R.id.tvPhotoSensor6, R.id.tvPhotoSensor7),
-        ANGLE(R.id.cbAngle, CalibratedAngleData.class,
+        ANGLE(R.id.cbAngle, AngleData.class,
                 R.id.tvAngle0, R.id.tvAngle1, R.id.tvAngle2),
-        TEMPERATURE(R.id.cbTemperature, CalibratedTemperatureData.class, R.id.tvTemperature0),
-        ACCELERATION(R.id.cbAcceleration, CalibratedAccelerationData.class,
+        TEMPERATURE(R.id.cbTemperature, TemperatureData.class, R.id.tvTemperature0),
+        ACCELERATION(R.id.cbAcceleration, AccelerationData.class,
                 R.id.tvAcceleration0, R.id.tvAcceleration1, R.id.tvAcceleration2),
-        GYRO(R.id.cbGyro, CalibratedGyroData.class,
+        GYRO(R.id.cbGyro, GyroData.class,
                 R.id.tvGyro0, R.id.tvGyro1, R.id.tvGyro2),
-        QUATERNION(R.id.cbQuaternion, CalibratedQuaternionData.class,
+        QUATERNION(R.id.cbQuaternion, QuaternionData.class,
                 R.id.tvQuaternion0, R.id.tvQuaternion1, R.id.tvQuaternion2, R.id.tvQuaternion3),;
 
         int mViewResId;
@@ -80,19 +80,19 @@ public class TestInputFragment extends AbstractTestFragment {
     private ReadInputSensorTask mReadInputSensorTask;
     private EditText mMarkDescription;
     private EditText mAddress;
-    private CalibratedPhotoReflectorData mPhotoReflectorData = new CalibratedPhotoReflectorData();
-    private CalibratedAngleData mAngleData = new CalibratedAngleData();
-    private CalibratedTemperatureData mTemperatureData = new CalibratedTemperatureData();
-    private CalibratedAccelerationData mAccelerationData = new CalibratedAccelerationData();
-    private CalibratedGyroData mGyroData = new CalibratedGyroData();
-    private CalibratedQuaternionData mQuaternionData = new CalibratedQuaternionData();
+    private PhotoReflectorData mPhotoReflectorData = new PhotoReflectorData();
+    private AngleData mAngleData = new AngleData();
+    private TemperatureData mTemperatureData = new TemperatureData();
+    private AccelerationData mAccelerationData = new AccelerationData();
+    private GyroData mGyroData = new GyroData();
+    private QuaternionData mQuaternionData = new QuaternionData();
     private TextView[][] mTvReadSensorValues = {
-            new TextView[CalibratedPhotoReflectorData.PHOTO_REFLECTOR_NUM],
-            new TextView[CalibratedAngleData.ANGLE_NUM],
-            new TextView[CalibratedTemperatureData.TEMPERATURE_NUM],
-            new TextView[CalibratedAccelerationData.ACCELERATION_NUM],
-            new TextView[CalibratedGyroData.GYRO_NUM],
-            new TextView[CalibratedQuaternionData.QUATERNION_NUM],
+            new TextView[PhotoReflectorData.PHOTO_REFLECTOR_NUM],
+            new TextView[AngleData.ANGLE_NUM],
+            new TextView[TemperatureData.TEMPERATURE_NUM],
+            new TextView[AccelerationData.ACCELERATION_NUM],
+            new TextView[GyroData.GYRO_NUM],
+            new TextView[QuaternionData.QUATERNION_NUM],
     };
     private SaveSensorDataTask mSaveSensorDataTask = null;
     private ClearSensorDataTask mClearSensorDataTask = null;
@@ -166,7 +166,7 @@ public class TestInputFragment extends AbstractTestFragment {
         if (requestCode == REQUEST_CODE_WRITE_STORAGE) {
             if (grantResults != null && grantResults.length > 0) {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    sendDataByMail();
+                    saveData();
                 }
             }
         }
@@ -327,7 +327,7 @@ public class TestInputFragment extends AbstractTestFragment {
             mGestureDetector.startCalibration(getActivity(), this);
             mCalibrationSemaphore.start();
 
-            if(mGestureDetector.isCalibrated()) {
+            if (mGestureDetector.isCalibrated()) {
 
 
                 Integer intervalMS = integers != null && integers.length > 0 ? integers[0] : DEFAULT_READ_INTERVAL_MS;
@@ -393,7 +393,7 @@ public class TestInputFragment extends AbstractTestFragment {
 
         @Override
         public void onCalibrationStatusChange(CalibrationStatus status) {
-            switch (status){
+            switch (status) {
                 case CalibrateSuccess:
                     break;
                 case CalibrateFail:
@@ -455,20 +455,20 @@ public class TestInputFragment extends AbstractTestFragment {
                 gzipOutputStream = new GZIPOutputStream(outputStream);
 
                 Class[] dataClassArray = {
-                        CalibratedPhotoReflectorData.class,
-                        CalibratedAngleData.class,
-                        CalibratedTemperatureData.class,
-                        CalibratedAccelerationData.class,
-                        CalibratedGyroData.class,
-                        CalibratedQuaternionData.class,
+                        PhotoReflectorData.class,
+                        AngleData.class,
+                        TemperatureData.class,
+                        AccelerationData.class,
+                        GyroData.class,
+                        QuaternionData.class,
                 };
                 int[] dataCountArray = {
-                        CalibratedPhotoReflectorData.PHOTO_REFLECTOR_NUM,
-                        CalibratedAngleData.ANGLE_NUM,
-                        CalibratedTemperatureData.TEMPERATURE_NUM,
-                        CalibratedAccelerationData.ACCELERATION_NUM,
-                        CalibratedGyroData.GYRO_NUM,
-                        CalibratedQuaternionData.QUATERNION_NUM,
+                        PhotoReflectorData.PHOTO_REFLECTOR_NUM,
+                        AngleData.ANGLE_NUM,
+                        TemperatureData.TEMPERATURE_NUM,
+                        AccelerationData.ACCELERATION_NUM,
+                        GyroData.GYRO_NUM,
+                        QuaternionData.QUATERNION_NUM,
                 };
                 Cursor[] dataCursorArray = {
                         mDatabase.getData(dataClassArray[0]),
@@ -630,7 +630,11 @@ public class TestInputFragment extends AbstractTestFragment {
                 READ_SENSOR readSensor = READ_SENSOR.values()[i];
 
                 for (int j = 0, sizeJ = readSensor.mDisplayValueResIds.length; j < sizeJ; j++) {
-                    mTvReadSensorValues[i][j].setText(String.valueOf(mSensorDataArray[i].getValue(j)));
+//                    String value = String.valueOf(mSensorDataArray[i].getCalibratedValue(j));
+//                    if(value == null){
+//                        value = String.valueOf(mSensorDataArray[i].getRawValue(j));
+//                    }
+                    mTvReadSensorValues[i][j].setText(String.valueOf(mSensorDataArray[i].getCalibratedValue(j)));
                 }
             }
 

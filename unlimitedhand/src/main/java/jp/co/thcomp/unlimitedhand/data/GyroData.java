@@ -11,11 +11,11 @@ public class GyroData extends AbstractSensorFloatData {
     }
 
     @Override
-    public Float getValue(int channelNum) {
+    public Float getRawValue(int channelNum) {
         float ret = 0;
 
         if(channelNum >= 0 && channelNum < GYRO_NUM){
-            ret = super.getValue(AccelerationData.ACCELERATION_NUM + SEPARATE_DATA_NUM  + channelNum);
+            ret = super.getRawValue(AccelerationData.ACCELERATION_NUM + SEPARATE_DATA_NUM  + channelNum);
         }
 
         return ret;

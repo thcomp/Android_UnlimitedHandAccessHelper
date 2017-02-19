@@ -10,11 +10,11 @@ public class TemperatureData extends AbstractSensorFloatData {
     }
 
     @Override
-    public Float getValue(int channelNum) {
-        return super.getValue(ANGLE_AND_TEMPERATURE_NUM - TEMPERATURE_NUM);
+    public Float getRawValue(int channelNum) {
+        return super.getRawValue(ANGLE_AND_TEMPERATURE_NUM - TEMPERATURE_NUM);
     }
 
     public Float getValue() {
-        return super.getValue(ANGLE_AND_TEMPERATURE_NUM - TEMPERATURE_NUM);
+        return super.getRawValue(ANGLE_AND_TEMPERATURE_NUM - TEMPERATURE_NUM);
     }
 }

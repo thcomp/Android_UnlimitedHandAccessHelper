@@ -18,12 +18,6 @@ import jp.co.thcomp.bluetoothhelper.BluetoothAccessHelper;
 import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
 import jp.co.thcomp.unlimitedhand.data.AccelerationData;
 import jp.co.thcomp.unlimitedhand.data.AngleData;
-import jp.co.thcomp.unlimitedhand.data.CalibratedAccelerationData;
-import jp.co.thcomp.unlimitedhand.data.CalibratedAngleData;
-import jp.co.thcomp.unlimitedhand.data.CalibratedGyroData;
-import jp.co.thcomp.unlimitedhand.data.CalibratedPhotoReflectorData;
-import jp.co.thcomp.unlimitedhand.data.CalibratedQuaternionData;
-import jp.co.thcomp.unlimitedhand.data.CalibratedTemperatureData;
 import jp.co.thcomp.unlimitedhand.data.CalibrationData;
 import jp.co.thcomp.unlimitedhand.data.GyroData;
 import jp.co.thcomp.unlimitedhand.data.PhotoReflectorData;
@@ -308,6 +302,9 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.PhotoSensor.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
+                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
+                            data.calibrate(mCalibrationData);
+                        }
                     }
                     break;
             }
@@ -334,6 +331,9 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Angle.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
+                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
+                            data.calibrate(mCalibrationData);
+                        }
                     }
                     break;
             }
@@ -360,6 +360,9 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Temperature.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
+                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
+                            data.calibrate(mCalibrationData);
+                        }
                     }
                     break;
             }
@@ -386,6 +389,9 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Acceleration.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
+                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
+                            data.calibrate(mCalibrationData);
+                        }
                     }
                     break;
             }
@@ -412,6 +418,9 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Gyro.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
+                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
+                            data.calibrate(mCalibrationData);
+                        }
                     }
                     break;
             }
@@ -438,6 +447,9 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Quaternion.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
+                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
+                            data.calibrate(mCalibrationData);
+                        }
                     }
                     break;
             }
@@ -477,7 +489,7 @@ public class UhAccessHelper {
 
                         SharpnessData data = new SharpnessData();
                         data.expandRawData(readData());
-                        mCurrentSharpnessLevel = data.getValue(0);
+                        mCurrentSharpnessLevel = data.getRawValue(0);
                     }
                 }
                 break;
@@ -500,7 +512,7 @@ public class UhAccessHelper {
 
                         SharpnessData data = new SharpnessData();
                         data.expandRawData(readData());
-                        mCurrentSharpnessLevel = data.getValue(0);
+                        mCurrentSharpnessLevel = data.getRawValue(0);
                     }
                 }
                 break;
@@ -527,7 +539,7 @@ public class UhAccessHelper {
 
                         VoltageData data = new VoltageData();
                         data.expandRawData(readData());
-                        mCurrentVoltageLevel = data.getValue(0);
+                        mCurrentVoltageLevel = data.getRawValue(0);
                     }
                 }
                 break;
@@ -550,7 +562,7 @@ public class UhAccessHelper {
 
                         VoltageData data = new VoltageData();
                         data.expandRawData(readData());
-                        mCurrentVoltageLevel = data.getValue(0);
+                        mCurrentVoltageLevel = data.getRawValue(0);
                     }
                 }
                 break;
@@ -713,12 +725,12 @@ public class UhAccessHelper {
         public void run() {
             OnSensorPollingListener[] toArrayTypeListener = new OnSensorPollingListener[0];
             AbstractSensorData[] toArrayTypeData = new AbstractSensorData[0];
-            CalibratedPhotoReflectorData photoReflectorData = new CalibratedPhotoReflectorData();
-            CalibratedAngleData angleData = new CalibratedAngleData();
-            CalibratedTemperatureData temperatureData = new CalibratedTemperatureData();
-            CalibratedAccelerationData accelerationData = new CalibratedAccelerationData();
-            CalibratedGyroData gyroData = new CalibratedGyroData();
-            CalibratedQuaternionData quaternionData = new CalibratedQuaternionData();
+            PhotoReflectorData photoReflectorData = new PhotoReflectorData();
+            AngleData angleData = new AngleData();
+            TemperatureData temperatureData = new TemperatureData();
+            AccelerationData accelerationData = new AccelerationData();
+            GyroData gyroData = new GyroData();
+            QuaternionData quaternionData = new QuaternionData();
             ArrayList<AbstractSensorData> retList = new ArrayList<>();
 
             while (mSensorPollingThread != null) {
@@ -730,36 +742,32 @@ public class UhAccessHelper {
 
                 if ((pollingTargetFlag & POLLING_PHOTO_REFLECTOR) == POLLING_PHOTO_REFLECTOR) {
                     readPhotoReflector(photoReflectorData);
-                    if (mCalibrationData != null) {
-                        photoReflectorData.setCalibrateBaseData(mCalibrationData.mPRAveArray);
-                    }
+                    photoReflectorData.calibrate(mCalibrationData);
                     retList.add(photoReflectorData);
                 }
                 if ((pollingTargetFlag & POLLING_ANGLE) == POLLING_ANGLE) {
                     readAngle(angleData);
-                    if (mCalibrationData != null) {
-                        Integer[] baseDataArray = new Integer[AngleData.ANGLE_NUM];
-                        for (int i = 0, size = baseDataArray.length; i < size; i++) {
-                            baseDataArray[i] = mCalibrationData.mAngleFlatAve;
-                        }
-                        angleData.setCalibrateBaseData(baseDataArray);
-                    }
+                    angleData.calibrate(mCalibrationData);
                     retList.add(angleData);
                 }
                 if ((pollingTargetFlag & POLLING_TEMPERATURE) == POLLING_TEMPERATURE) {
                     readTemperature(temperatureData);
+                    temperatureData.calibrate(mCalibrationData);
                     retList.add(temperatureData);
                 }
                 if ((pollingTargetFlag & POLLING_ACCELERATION) == POLLING_ACCELERATION) {
                     readAcceleration(accelerationData);
+                    accelerationData.calibrate(mCalibrationData);
                     retList.add(accelerationData);
                 }
                 if ((pollingTargetFlag & POLLING_GYRO) == POLLING_GYRO) {
                     readGyro(gyroData);
+                    gyroData.calibrate(mCalibrationData);
                     retList.add(gyroData);
                 }
                 if ((pollingTargetFlag & POLLING_QUATERNION) == POLLING_QUATERNION) {
                     readQuaternion(quaternionData);
+                    quaternionData.calibrate(mCalibrationData);
                     retList.add(quaternionData);
                 }
 
