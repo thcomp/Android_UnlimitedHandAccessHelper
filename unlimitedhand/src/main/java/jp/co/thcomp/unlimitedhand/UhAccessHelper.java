@@ -212,6 +212,7 @@ public class UhAccessHelper {
                                     if (status == CalibrationStatus.CalibrateSuccess) {
                                         mCalibrationData = new CalibrationData();
                                         mCalibrator.getCalibrationData(mCalibrationData);
+                                        LogUtil.d(TAG, mCalibrationData.toString());
                                     }
 
                                     for (OnCalibrationStatusChangeListener onCalibrationStatusChangeListener : mOnCalibrationStatusChangeListenerList) {
@@ -596,15 +597,7 @@ public class UhAccessHelper {
     }
 
     private byte[] readData() {
-        byte[] readBuffer = new byte[1024];
-        int readSize = 0;
-        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-
-        if ((readSize = mBTAccessHelper.readData(mUnlimitedHand, BluetoothAccessHelper.BT_SERIAL_PORT, readBuffer)) > 0) {
-            outStream.write(readBuffer, 0, readSize);
-        }
-
-        return outStream.toByteArray();
+        return mBTAccessHelper.readLine(mUnlimitedHand, BluetoothAccessHelper.BT_SERIAL_PORT, "\r\n".getBytes());
     }
 
     private synchronized ConnectResult connect(String deviceName, boolean useRegExp) {

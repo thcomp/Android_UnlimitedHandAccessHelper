@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.zip.GZIPOutputStream;
@@ -328,8 +330,6 @@ public class TestInputFragment extends AbstractTestFragment {
             mCalibrationSemaphore.start();
 
             if (mGestureDetector.isCalibrated()) {
-
-
                 Integer intervalMS = integers != null && integers.length > 0 ? integers[0] : DEFAULT_READ_INTERVAL_MS;
 
                 if (intervalMS <= 0) {
@@ -395,6 +395,7 @@ public class TestInputFragment extends AbstractTestFragment {
         public void onCalibrationStatusChange(CalibrationStatus status) {
             switch (status) {
                 case CalibrateSuccess:
+                    ToastUtil.showToast(getActivity(), "calibration success", Toast.LENGTH_SHORT);
                     break;
                 case CalibrateFail:
                     ToastUtil.showToast(getActivity(), "calibration fail", Toast.LENGTH_SHORT);
@@ -519,6 +520,9 @@ public class TestInputFragment extends AbstractTestFragment {
                             // mark row
                             dataLineBuilder.append(",").append(description).append("\n");
                         } else {
+                            Constructor constructor = targetDataClass.getConstructor();
+                            AbstractSensorData tempInstance = (AbstractSensorData) constructor.newInstance();
+
                             dataLineBuilder.append(",").append(tempCData);
                             for (int i = 0, size = dataCountArray[oldestDataCursorIndex]; i < size; i++) {
                                 String columnName = SensorValueDatabase.getSensorValueColumnName(i);
@@ -531,6 +535,23 @@ public class TestInputFragment extends AbstractTestFragment {
                                     dataLineBuilder.append(",").append(targetCursor.getFloat(dataIndex));
                                 } else if (dataType == Cursor.FIELD_TYPE_STRING) {
                                     dataLineBuilder.append(",").append(targetCursor.getString(dataIndex));
+                                }
+                            }
+
+                            if(tempInstance.isSupportCalibration()){
+                                dataLineBuilder.append(",").append(tempCData);
+                                for (int i = 0, size = dataCountArray[oldestDataCursorIndex]; i < size; i++) {
+                                    String columnName = SensorValueDatabase.getCalibratedSensorValueColumnName(i);
+                                    int dataIndex = targetCursor.getColumnIndex(columnName);
+                                    int dataType = targetCursor.getType(dataIndex);
+
+                                    if (dataType == Cursor.FIELD_TYPE_INTEGER) {
+                                        dataLineBuilder.append(",").append(targetCursor.getInt(dataIndex));
+                                    } else if (dataType == Cursor.FIELD_TYPE_FLOAT) {
+                                        dataLineBuilder.append(",").append(targetCursor.getFloat(dataIndex));
+                                    } else if (dataType == Cursor.FIELD_TYPE_STRING) {
+                                        dataLineBuilder.append(",").append(targetCursor.getString(dataIndex));
+                                    }
                                 }
                             }
                             dataLineBuilder.append("\n");
@@ -556,6 +577,14 @@ public class TestInputFragment extends AbstractTestFragment {
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
+                e.printStackTrace();
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            } catch (java.lang.InstantiationException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
                 e.printStackTrace();
             } finally {
                 if (gzipOutputStream != null) {

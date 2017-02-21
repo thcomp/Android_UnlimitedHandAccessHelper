@@ -9,6 +9,11 @@ public class PhotoReflectorData extends AbstractSensorIntegerData {
     }
 
     @Override
+    protected String getRawDataSeparator() {
+        return "_";
+    }
+
+    @Override
     public boolean isSupportCalibration() {
         return true;
     }

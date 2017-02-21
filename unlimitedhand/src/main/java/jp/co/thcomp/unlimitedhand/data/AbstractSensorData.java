@@ -8,9 +8,13 @@ public abstract class AbstractSensorData<DataType> {
 
     abstract protected DataType changeDataType(String orgData);
 
+    protected String getRawDataSeparator(){
+        return "\\+";
+    }
+
     public boolean expandRawData(byte[] rawData) {
         boolean ret = true;
-        String[] rawDataSplitArray = new String(rawData).split("_");
+        String[] rawDataSplitArray = new String(rawData).split(getRawDataSeparator());
 
         for (int i = 0, size = getSensorNum(); i < size; i++) {
             try {
