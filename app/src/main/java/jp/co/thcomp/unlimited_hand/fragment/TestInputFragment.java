@@ -1,6 +1,7 @@
 package jp.co.thcomp.unlimited_hand.fragment;
 
 
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -178,6 +179,23 @@ public class TestInputFragment extends AbstractTestFragment {
     public void onPause() {
         super.onPause();
         PreferenceUtil.writePref(getActivity(), PREF_LAST_MAIL_ADDRESS, mAddress.getText().toString());
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (mReadInputSensorTask != null) {
+            mReadInputSensorTask.cancel(true);
+            mReadInputSensorTask = null;
+        }
+        if (mClearSensorDataTask != null) {
+            mClearSensorDataTask.cancel(true);
+            mClearSensorDataTask = null;
+        }
+        if (mSaveSensorDataTask != null) {
+            mSaveSensorDataTask.cancel(true);
+            mSaveSensorDataTask = null;
+        }
     }
 
     private void startReadInputSensor() {
@@ -374,15 +392,18 @@ public class TestInputFragment extends AbstractTestFragment {
                                 break;
                         }
                     }
-                    ThreadUtil.runOnMainThread(getActivity(), mUpdateReadSensorValueRunnable);
+                    Activity activity = getActivity();
+                    if (activity != null) {
+                        ThreadUtil.runOnMainThread(activity, mUpdateReadSensorValueRunnable);
 
-                    long endTimeMS = System.currentTimeMillis();
-                    long sleepTimeMS = intervalMS - (endTimeMS - startTimeMS);
+                        long endTimeMS = System.currentTimeMillis();
+                        long sleepTimeMS = intervalMS - (endTimeMS - startTimeMS);
 
-                    if (sleepTimeMS > 0) {
-                        try {
-                            Thread.sleep(sleepTimeMS);
-                        } catch (InterruptedException e) {
+                        if (sleepTimeMS > 0) {
+                            try {
+                                Thread.sleep(sleepTimeMS);
+                            } catch (InterruptedException e) {
+                            }
                         }
                     }
                 }
@@ -538,7 +559,7 @@ public class TestInputFragment extends AbstractTestFragment {
                                 }
                             }
 
-                            if(tempInstance.isSupportCalibration()){
+                            if (tempInstance.isSupportCalibration()) {
                                 dataLineBuilder.append(",").append(tempCData);
                                 for (int i = 0, size = dataCountArray[oldestDataCursorIndex]; i < size; i++) {
                                     String columnName = SensorValueDatabase.getCalibratedSensorValueColumnName(i);
@@ -659,11 +680,11 @@ public class TestInputFragment extends AbstractTestFragment {
                 READ_SENSOR readSensor = READ_SENSOR.values()[i];
 
                 for (int j = 0, sizeJ = readSensor.mDisplayValueResIds.length; j < sizeJ; j++) {
-//                    String value = String.valueOf(mSensorDataArray[i].getCalibratedValue(j));
-//                    if(value == null){
-//                        value = String.valueOf(mSensorDataArray[i].getRawValue(j));
-//                    }
-                    mTvReadSensorValues[i][j].setText(String.valueOf(mSensorDataArray[i].getCalibratedValue(j)));
+                    if (mSensorDataArray[i].isSupportCalibration()) {
+                        mTvReadSensorValues[i][j].setText(String.valueOf(mSensorDataArray[i].getCalibratedValue(j)));
+                    } else {
+                        mTvReadSensorValues[i][j].setText(String.valueOf(mSensorDataArray[i].getRawValue(j)));
+                    }
                 }
             }
 

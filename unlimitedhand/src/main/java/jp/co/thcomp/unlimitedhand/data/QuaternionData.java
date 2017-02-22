@@ -1,6 +1,6 @@
 package jp.co.thcomp.unlimitedhand.data;
 
-public class QuaternionData extends AbstractSensorIntegerData {
+public class QuaternionData extends AbstractSensorFloatData {
     public static final int QUATERNION_NUM = 4;
 
     @Override
