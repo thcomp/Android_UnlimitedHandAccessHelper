@@ -74,7 +74,7 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
                     if (!mCalibratingProgressDialog.isShowing()) {
                         mCalibratingProgressDialog.show();
 
-                        mUhGestureDetector.startCalibration(getActivity(), new OnCalibrationStatusChangeListener() {
+                        mUhGestureDetector.startCalibration(getActivity(), -90, new OnCalibrationStatusChangeListener() {
                             @Override
                             public void onCalibrationStatusChange(CalibrationStatus status) {
                                 switch (status) {

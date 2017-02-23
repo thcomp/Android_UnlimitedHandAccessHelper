@@ -194,7 +194,7 @@ public class UhAccessHelper {
         return mCalibrationStatus == CalibrationStatus.CalibrateSuccess;
     }
 
-    public void startCalibration(Context context, final OnCalibrationStatusChangeListener listener) {
+    public void startCalibration(Context context, int calibrateDeviceAngle, final OnCalibrationStatusChangeListener listener) {
         synchronized (this) {
             switch (mCalibrationStatus) {
                 case Init:
@@ -224,7 +224,7 @@ public class UhAccessHelper {
                             }
                         }
                     });
-                    mCalibrator.startCalibration();
+                    mCalibrator.startCalibration(calibrateDeviceAngle);
                     break;
                 case CalibrateSuccess:
                     if (listener != null) {

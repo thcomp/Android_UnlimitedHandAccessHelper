@@ -60,8 +60,8 @@ public class UhGestureDetector {
         return mUhAccessHelper.isCalibrated();
     }
 
-    public void startCalibration(Context context, final OnCalibrationStatusChangeListener listener) {
-        mUhAccessHelper.startCalibration(context, listener);
+    public void startCalibration(Context context, int calibrateDeviceAngle, final OnCalibrationStatusChangeListener listener) {
+        mUhAccessHelper.startCalibration(context, calibrateDeviceAngle, listener);
     }
 
     public void stopCalibration() {

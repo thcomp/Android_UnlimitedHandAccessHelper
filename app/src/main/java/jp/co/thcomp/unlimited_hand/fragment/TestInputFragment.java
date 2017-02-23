@@ -330,11 +330,13 @@ public class TestInputFragment extends AbstractTestFragment {
         @Override
         protected void onCancelled() {
             super.onCancelled();
+            mCalibrationSemaphore.stop();
         }
 
         @Override
         protected void onCancelled(Void aVoid) {
             super.onCancelled(aVoid);
+            mCalibrationSemaphore.stop();
         }
 
         @Override
@@ -344,7 +346,7 @@ public class TestInputFragment extends AbstractTestFragment {
 
         @Override
         protected Void doInBackground(Integer... integers) {
-            mGestureDetector.startCalibration(getActivity(), this);
+            mGestureDetector.startCalibration(getActivity(), -90, this);
             mCalibrationSemaphore.start();
 
             if (mGestureDetector.isCalibrated()) {

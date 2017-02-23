@@ -12,7 +12,6 @@ import jp.co.thcomp.util.LogUtil;
 import jp.co.thcomp.util.ThreadUtil;
 
 class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
-    private static final int CALIBRATE_ANGLE_FLAT_AVE = 30;
     private static final String TAG = UhCalibrator.class.getSimpleName();
 
     private Context mContext;
@@ -26,6 +25,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
     private boolean mDebug = false;
     private Thread mCalibrationThread;
     private CalibrationStatus mResultStatus = CalibrationStatus.Init;
+    private int mCalibrateDeviceAngle = 0;
 
     public UhCalibrator(Context context, UhAccessHelper uhAccessHelper, boolean debug) {
         mContext = context;
@@ -37,7 +37,9 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
         mListener = listener;
     }
 
-    public void startCalibration() {
+    public void startCalibration(int calibrateDeviceAngle) {
+        mCalibrateDeviceAngle = calibrateDeviceAngle;
+
         if (mCalibrationThread == null) {
             mCalibrationThread = new Thread(mCalibrationRunnable);
             mCalibrationThread.start();
@@ -102,7 +104,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
             LogUtil.d(TAG, data.toString());
         }
 
-        if (data.mAngleFlatAve > CALIBRATE_ANGLE_FLAT_AVE) {
+        if (data.mAngleFlatAve > mCalibrateDeviceAngle) {
             mOnetimeSemaphore.stop();
         }
     }
@@ -115,7 +117,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
             mOnetimeSemaphore.start();
 
             if (mCalibrationData != null) {
-                if (mCalibrationData.mAngleFlatAve > CALIBRATE_ANGLE_FLAT_AVE) {
+                if (mCalibrationData.mAngleFlatAve > mCalibrateDeviceAngle) {
                     mResultStatus = CalibrationStatus.CalibrateSuccess;
                 }
             } else {

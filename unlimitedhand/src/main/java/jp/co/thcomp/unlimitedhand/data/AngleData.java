@@ -9,17 +9,13 @@ public class AngleData extends AbstractSensorIntegerData {
     }
 
     @Override
-    public boolean isSupportCalibration() {
-        return true;
-    }
+    public Integer getRawValue(int channelNum) {
+        Integer ret = super.getRawValue(channelNum);
 
-    @Override
-    public boolean calibrate(CalibrationData calibrationData) {
-        boolean ret = super.calibrate(calibrationData);
-
-        if (ret) {
-            for (int i = 0, size = getSensorNum(); i < size; i++) {
-                calibratedChannelData[i] = String.valueOf(getRawValue(i) - calibrationData.mAngleFlatAve);
+        if (ret != null) {
+            if ((-180 > ret) || (ret > 180)) {
+                // invalid value, return 0
+                ret = 0;
             }
         }
 
