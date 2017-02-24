@@ -116,9 +116,9 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
             Object value = data.getRawValue(i);
             if (value != null) {
                 if (value.getClass() == Integer.class || value.getClass() == int.class) {
-                    values.put(getSensorValueColumnName(i), (int) data.getRawValue(i));
+                    values.put(getSensorValueColumnName(i), (int) value);
                 } else if (value.getClass() == Float.class || value.getClass() == float.class) {
-                    values.put(getSensorValueColumnName(i), (float) data.getRawValue(i));
+                    values.put(getSensorValueColumnName(i), (float) value);
                 }
             }
         }
@@ -128,9 +128,9 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
                 Object value = data.getCalibratedValue(i);
                 if (value != null) {
                     if (value.getClass() == Integer.class || value.getClass() == int.class) {
-                        values.put(getSensorValueColumnName(i), (int) data.getCalibratedValue(i));
+                        values.put(getSensorValueColumnName(i), (int) value);
                     } else if (value.getClass() == Float.class || value.getClass() == float.class) {
-                        values.put(getSensorValueColumnName(i), (float) data.getCalibratedValue(i));
+                        values.put(getSensorValueColumnName(i), (float) value);
                     }
                 }
             }
