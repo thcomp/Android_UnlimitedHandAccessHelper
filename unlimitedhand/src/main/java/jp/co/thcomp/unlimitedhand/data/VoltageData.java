@@ -1,11 +1,17 @@
 package jp.co.thcomp.unlimitedhand.data;
 
 public class VoltageData extends AbstractSensorIntegerData {
+    public static final boolean IS_SUPPORT_CALIBRATION = false;
     public static final int VOLTAGE_NUM = 1;
 
     @Override
     public int getSensorNum() {
         return VOLTAGE_NUM;
+    }
+
+    @Override
+    public boolean isSupportCalibration() {
+        return IS_SUPPORT_CALIBRATION;
     }
 
     /**

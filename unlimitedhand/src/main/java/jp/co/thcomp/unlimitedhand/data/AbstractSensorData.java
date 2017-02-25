@@ -8,7 +8,9 @@ public abstract class AbstractSensorData<DataType> {
 
     abstract protected DataType changeDataType(String orgData);
 
-    protected String getRawDataSeparator(){
+    abstract public boolean isSupportCalibration();
+
+    protected String getRawDataSeparator() {
         return "\\+";
     }
 
@@ -28,10 +30,6 @@ public abstract class AbstractSensorData<DataType> {
         }
 
         return ret;
-    }
-
-    public boolean isSupportCalibration() {
-        return false;
     }
 
     public boolean calibrate(CalibrationData calibrationData) {

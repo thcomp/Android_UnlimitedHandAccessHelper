@@ -1,11 +1,17 @@
 package jp.co.thcomp.unlimitedhand.data;
 
 public class SharpnessData extends AbstractSensorIntegerData {
+    public static final boolean IS_SUPPORT_CALIBRATION = false;
     public static final int SHARPNESS_NUM = 1;
 
     @Override
     public int getSensorNum() {
         return SHARPNESS_NUM;
+    }
+
+    @Override
+    public boolean isSupportCalibration() {
+        return IS_SUPPORT_CALIBRATION;
     }
 
     /**

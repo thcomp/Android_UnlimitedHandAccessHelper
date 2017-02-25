@@ -28,6 +28,8 @@ import jp.co.thcomp.unlimited_hand.fragment.TestGestureDetectorFragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestInputFragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestOutputFragment;
 import jp.co.thcomp.unlimitedhand.UhAccessHelper;
+import jp.co.thcomp.util.Constant;
+import jp.co.thcomp.util.LogUtil;
 import jp.co.thcomp.util.ToastUtil;
 
 public class MainActivity extends AppCompatActivity implements AbstractTestFragment.UHAccessHelperProvider {
@@ -44,6 +46,8 @@ public class MainActivity extends AppCompatActivity implements AbstractTestFragm
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        LogUtil.logoutput(Constant.LOG_SWITCH.LOG_SWITCH_ERROR | Constant.LOG_SWITCH.LOG_SWITCH_WARNING | Constant.LOG_SWITCH.LOG_SWITCH_INFO | Constant.LOG_SWITCH.LOG_SWITCH_DEBUG);
         setContentView(R.layout.activity_main);
 
         mUHAccessHelper = new UhAccessHelper(this);

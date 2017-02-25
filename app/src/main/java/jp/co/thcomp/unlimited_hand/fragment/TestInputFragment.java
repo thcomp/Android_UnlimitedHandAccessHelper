@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.zip.GZIPOutputStream;
 
+import jp.co.thcomp.unlimited_hand.Common;
 import jp.co.thcomp.unlimited_hand.R;
 import jp.co.thcomp.unlimited_hand.SensorValueDatabase;
 import jp.co.thcomp.unlimitedhand.CalibrationStatus;
@@ -52,6 +53,7 @@ public class TestInputFragment extends AbstractTestFragment {
     private static final int REQUEST_CODE_WRITE_STORAGE = "REQUEST_CODE_WRITE_STORAGE".hashCode() & 0x0000FFFF;
     private static final int DEFAULT_READ_FPS = 30;
     private static final int DEFAULT_READ_INTERVAL_MS = (int) (1000 / DEFAULT_READ_FPS);
+    private static final int DEFAULT_CALIBRATION_ANGLE = 0;
 
     private enum READ_SENSOR {
         PHOTO(R.id.cbPhotoSensor, PhotoReflectorData.class,
@@ -81,6 +83,7 @@ public class TestInputFragment extends AbstractTestFragment {
     private UhGestureDetector mGestureDetector;
     private SensorValueDatabase mDatabase;
     private ReadInputSensorTask mReadInputSensorTask;
+    private EditText mCalibrateDeviceAngle;
     private EditText mMarkDescription;
     private EditText mAddress;
     private PhotoReflectorData mPhotoReflectorData = new PhotoReflectorData();
@@ -141,6 +144,8 @@ public class TestInputFragment extends AbstractTestFragment {
         mRootView = super.onCreateView(inflater, container, savedInstanceState);
 
         mGestureDetector = new UhGestureDetector(mUHAccessHelper, UhGestureDetector.WearDevice.RightArm);
+        mCalibrateDeviceAngle = (EditText) mRootView.findViewById(R.id.etCalibrationAngle);
+        mCalibrateDeviceAngle.setText(String.valueOf(PreferenceUtil.readPrefInt(getActivity(), Common.PREF_INT_CALIBRATE_DEVICE_ANGLE, DEFAULT_CALIBRATION_ANGLE)));
         mMarkDescription = (EditText) mRootView.findViewById(R.id.etDescription);
         mAddress = (EditText) mRootView.findViewById(R.id.etAddress);
         mAddress.setText(PreferenceUtil.readPrefString(getActivity(), PREF_LAST_MAIL_ADDRESS));
@@ -179,6 +184,7 @@ public class TestInputFragment extends AbstractTestFragment {
     public void onPause() {
         super.onPause();
         PreferenceUtil.writePref(getActivity(), PREF_LAST_MAIL_ADDRESS, mAddress.getText().toString());
+        PreferenceUtil.writePref(getActivity(), Common.PREF_INT_CALIBRATE_DEVICE_ANGLE, mCalibrateDeviceAngle.getText().toString());
     }
 
     @Override
@@ -320,10 +326,18 @@ public class TestInputFragment extends AbstractTestFragment {
     private class ReadInputSensorTask extends AsyncTask<Integer, Void, Void> implements OnCalibrationStatusChangeListener {
         private READ_SENSOR[] mReadSensors;
         private ThreadUtil.OnetimeSemaphore mCalibrationSemaphore = new ThreadUtil.OnetimeSemaphore();
+        private int mCalibrateDeviceAngleNumber;
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+
+            try {
+                mCalibrateDeviceAngleNumber = Integer.valueOf(mCalibrateDeviceAngle.getText().toString());
+            } catch (NumberFormatException e) {
+                mCalibrateDeviceAngleNumber = DEFAULT_CALIBRATION_ANGLE;
+                ToastUtil.showToast(getActivity(), "cannot use " + mCalibrateDeviceAngle.getText().toString() + "\nuse " + DEFAULT_CALIBRATION_ANGLE, Toast.LENGTH_SHORT);
+            }
             mUpdateTargetSensorRunnable.run();
         }
 
@@ -346,7 +360,7 @@ public class TestInputFragment extends AbstractTestFragment {
 
         @Override
         protected Void doInBackground(Integer... integers) {
-            mGestureDetector.startCalibration(getActivity(), -90, this);
+            mGestureDetector.startCalibration(getActivity(), mCalibrateDeviceAngleNumber, this);
             mCalibrationSemaphore.start();
 
             if (mGestureDetector.isCalibrated()) {

@@ -1,9 +1,10 @@
 package jp.co.thcomp.unlimitedhand.data;
 
 public class GyroData extends AbstractSensorFloatData {
+    public static final boolean IS_SUPPORT_CALIBRATION = false;
     public static final int GYRO_NUM = 3;
-    private static final int SEPARATE_DATA_NUM = 1;
-    private static final int ACCELERATION_GYRO_NUM = AccelerationData.ACCELERATION_NUM + SEPARATE_DATA_NUM + GyroData.GYRO_NUM;
+    public static final int SEPARATE_DATA_NUM = 1;
+    public static final int ACCELERATION_GYRO_NUM = AccelerationData.ACCELERATION_NUM + SEPARATE_DATA_NUM + GyroData.GYRO_NUM;
 
     @Override
     public int getSensorNum() {
@@ -14,8 +15,27 @@ public class GyroData extends AbstractSensorFloatData {
     public Float getRawValue(int channelNum) {
         float ret = 0;
 
-        if(channelNum >= 0 && channelNum < GYRO_NUM){
-            ret = super.getRawValue(AccelerationData.ACCELERATION_NUM + SEPARATE_DATA_NUM  + channelNum);
+        if (channelNum >= 0 && channelNum < GYRO_NUM) {
+            ret = super.getRawValue(AccelerationData.ACCELERATION_NUM + SEPARATE_DATA_NUM + channelNum);
+        }
+
+        return ret;
+    }
+
+    @Override
+    public boolean isSupportCalibration() {
+        return IS_SUPPORT_CALIBRATION;
+    }
+
+    @Override
+    public boolean calibrate(CalibrationData calibrationData) {
+        boolean ret = super.calibrate(calibrationData);
+
+        if (ret) {
+            int baseIndex = AccelerationData.ACCELERATION_NUM + SEPARATE_DATA_NUM;
+            for (int i = baseIndex, size = getSensorNum(); i < size; i++) {
+                calibratedChannelData[i] = String.valueOf(getRawValue(i - baseIndex) - calibrationData.mAccelTempGyroAveArray[i]);
+            }
         }
 
         return ret;

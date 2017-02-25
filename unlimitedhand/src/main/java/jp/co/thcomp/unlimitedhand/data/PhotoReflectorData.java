@@ -1,6 +1,7 @@
 package jp.co.thcomp.unlimitedhand.data;
 
 public class PhotoReflectorData extends AbstractSensorIntegerData {
+    public static final boolean IS_SUPPORT_CALIBRATION = false;
     public static final int PHOTO_REFLECTOR_NUM = 8;
 
     @Override
@@ -15,7 +16,7 @@ public class PhotoReflectorData extends AbstractSensorIntegerData {
 
     @Override
     public boolean isSupportCalibration() {
-        return true;
+        return IS_SUPPORT_CALIBRATION;
     }
 
     @Override

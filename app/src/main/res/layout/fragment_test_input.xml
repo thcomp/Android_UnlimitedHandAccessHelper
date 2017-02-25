@@ -82,6 +82,13 @@
             </LinearLayout>
         </LinearLayout>
 
+        <EditText
+            android:id="@+id/etCalibrationAngle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberSigned"
+            android:hint="input device angle(degree) for calibration"/>
+
         <Button
             android:id="@+id/btnStartInput"
             android:layout_width="match_parent"
