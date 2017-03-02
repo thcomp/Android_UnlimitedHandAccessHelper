@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="android_utility-1.0.19">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/app/build/intermediates/exploded-aar/jp.co.thcomp/android_utility/1.0.19/res" />
+      <root url="jar://$PROJECT_DIR$/app/build/intermediates/exploded-aar/jp.co.thcomp/android_utility/1.0.19/jars/classes.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
