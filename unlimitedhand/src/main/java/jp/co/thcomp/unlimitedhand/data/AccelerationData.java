@@ -1,7 +1,10 @@
 package jp.co.thcomp.unlimitedhand.data;
 
+import jp.co.thcomp.unlimitedhand.UhAccessHelper;
+import jp.co.thcomp.util.LogUtil;
+
 public class AccelerationData extends AbstractSensorFloatData {
-    public static final boolean IS_SUPPORT_CALIBRATION = false;
+    public static final boolean IS_SUPPORT_CALIBRATION = true;
     public static final int ACCELERATION_NUM = 3;
     public static final int SEPARATE_DATA_NUM = 1;
     public static final int ACCELERATION_GYRO_NUM = AccelerationData.ACCELERATION_NUM + SEPARATE_DATA_NUM + GyroData.GYRO_NUM;
@@ -33,7 +36,13 @@ public class AccelerationData extends AbstractSensorFloatData {
 
         if (ret) {
             for (int i = 0, size = ACCELERATION_NUM; i < size; i++) {
-                calibratedChannelData[i] = String.valueOf(getRawValue(i) - calibrationData.mAccelTempGyroAveArray[i]);
+                if(UhAccessHelper.isEnableDebug()) {
+                    LogUtil.d(UhAccessHelper.TAG,
+                            AccelerationData.class.getSimpleName() +
+                                    ": value=" + String.valueOf(getRawValue(i) - calibrationData.mAccelGyroAveArray[i]) +
+                                    ", raw value(" + i + ")=" + getRawValue(i) + ", ave=" + calibrationData.mAccelGyroAveArray[i]);
+                }
+                calibratedChannelData[i] = String.valueOf(getRawValue(i) - calibrationData.mAccelGyroAveArray[i]);
             }
         }
 

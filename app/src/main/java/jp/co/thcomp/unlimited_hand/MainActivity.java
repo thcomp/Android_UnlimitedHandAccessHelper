@@ -67,6 +67,14 @@ public class MainActivity extends AppCompatActivity implements AbstractTestFragm
                 }
             }
         });
+        SwitchCompat swtEnableUHDebugLog = (SwitchCompat) findViewById(R.id.swtDebugLog);
+        swtEnableUHDebugLog.setChecked(UhAccessHelper.isEnableDebug());
+        swtEnableUHDebugLog.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                UhAccessHelper.enableDebug(checked);
+            }
+        });
 
         Spinner menuSpinner = (Spinner) findViewById(R.id.spnrMenu);
         menuSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {

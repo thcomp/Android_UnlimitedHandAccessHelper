@@ -13,11 +13,31 @@
     android:orientation="vertical"
     tools:context="jp.co.thcomp.unlimited_hand.MainActivity">
 
-    <android.support.v7.widget.SwitchCompat
-        android:id="@+id/swtConnectUnlimitedHand"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="start Unlimited Hand helper"/>
+        android:weightSum="1.0"
+        android:orientation="horizontal">
+
+        <android.support.v7.widget.SwitchCompat
+            android:id="@+id/swtConnectUnlimitedHand"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="start UH helper"/>
+
+        <View
+            android:layout_width="4dp"
+            android:layout_height="1px" />
+
+        <android.support.v7.widget.SwitchCompat
+            android:id="@+id/swtDebugLog"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="UH debug log"/>
+
+    </LinearLayout>
 
     <View
         android:layout_width="match_parent"

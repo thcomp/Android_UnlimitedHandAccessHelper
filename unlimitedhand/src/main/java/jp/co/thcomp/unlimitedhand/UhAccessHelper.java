@@ -29,7 +29,7 @@ import jp.co.thcomp.util.LogUtil;
 import jp.co.thcomp.util.ThreadUtil;
 
 public class UhAccessHelper {
-    private static final String TAG = UhAccessHelper.class.getSimpleName();
+    public static final String TAG = UhAccessHelper.class.getSimpleName();
     private static final String DEFAULT_UH_NAME_PATTERN = "RNBT-[\\w]{4}";
     private static final int DEFAULT_EMS_VOLTAGE_LEVEL = 8;
     private static final int DEFAULT_EMS_SHARPNESS_LEVEL = 15;
@@ -48,6 +48,10 @@ public class UhAccessHelper {
 
     public static void enableDebug(boolean enable) {
         sDebug = enable;
+    }
+
+    public static boolean isEnableDebug() {
+        return sDebug;
     }
 
     public interface OnSensorPollingListener {
@@ -482,16 +486,13 @@ public class UhAccessHelper {
         switch (mAccessStatus) {
             case PairedUnlimitedHand:
             case ConnectedUnlimitedHand:
-                synchronized (mSendSemaphore) {
-                    mSendSemaphore.initialize();
+                mSendSemaphore.initialize();
+                if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.UpSharpnessLevel.getLineCode()))) {
+                    mSendSemaphore.start();
 
-                    if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.UpSharpnessLevel.getLineCode()))) {
-                        mSendSemaphore.start();
-
-                        SharpnessData data = new SharpnessData();
-                        data.expandRawData(readData());
-                        mCurrentSharpnessLevel = data.getRawValue(0);
-                    }
+                    SharpnessData data = new SharpnessData();
+                    data.expandRawData(readData());
+                    mCurrentSharpnessLevel = data.getRawValue(0);
                 }
                 break;
         }
@@ -505,16 +506,13 @@ public class UhAccessHelper {
         switch (mAccessStatus) {
             case PairedUnlimitedHand:
             case ConnectedUnlimitedHand:
-                synchronized (mSendSemaphore) {
-                    mSendSemaphore.initialize();
+                mSendSemaphore.initialize();
+                if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.DownSharpnessLevel.getLineCode()))) {
+                    mSendSemaphore.start();
 
-                    if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.DownSharpnessLevel.getLineCode()))) {
-                        mSendSemaphore.start();
-
-                        SharpnessData data = new SharpnessData();
-                        data.expandRawData(readData());
-                        mCurrentSharpnessLevel = data.getRawValue(0);
-                    }
+                    SharpnessData data = new SharpnessData();
+                    data.expandRawData(readData());
+                    mCurrentSharpnessLevel = data.getRawValue(0);
                 }
                 break;
         }
@@ -532,16 +530,14 @@ public class UhAccessHelper {
         switch (mAccessStatus) {
             case PairedUnlimitedHand:
             case ConnectedUnlimitedHand:
-                synchronized (mSendSemaphore) {
-                    mSendSemaphore.initialize();
+                mSendSemaphore.initialize();
 
-                    if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.UpVoltageLevel.getLineCode()))) {
-                        mSendSemaphore.start();
+                if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.UpVoltageLevel.getLineCode()))) {
+                    mSendSemaphore.start();
 
-                        VoltageData data = new VoltageData();
-                        data.expandRawData(readData());
-                        mCurrentVoltageLevel = data.getRawValue(0);
-                    }
+                    VoltageData data = new VoltageData();
+                    data.expandRawData(readData());
+                    mCurrentVoltageLevel = data.getRawValue(0);
                 }
                 break;
         }
@@ -555,16 +551,14 @@ public class UhAccessHelper {
         switch (mAccessStatus) {
             case PairedUnlimitedHand:
             case ConnectedUnlimitedHand:
-                synchronized (mSendSemaphore) {
-                    mSendSemaphore.initialize();
+                mSendSemaphore.initialize();
 
-                    if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.DownVoltageLevel.getLineCode()))) {
-                        mSendSemaphore.start();
+                if ((ret = mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.DownVoltageLevel.getLineCode()))) {
+                    mSendSemaphore.start();
 
-                        VoltageData data = new VoltageData();
-                        data.expandRawData(readData());
-                        mCurrentVoltageLevel = data.getRawValue(0);
-                    }
+                    VoltageData data = new VoltageData();
+                    data.expandRawData(readData());
+                    mCurrentVoltageLevel = data.getRawValue(0);
                 }
                 break;
         }
@@ -597,7 +591,15 @@ public class UhAccessHelper {
     }
 
     private byte[] readData() {
-        return mBTAccessHelper.readLine(mUnlimitedHand, BluetoothAccessHelper.BT_SERIAL_PORT, "\r\n".getBytes());
+        if (UhAccessHelper.sDebug) {
+            LogUtil.d(TAG, this.getClass().getSimpleName() + ": readData(S)");
+        }
+        byte[] ret = mBTAccessHelper.readLine(mUnlimitedHand, BluetoothAccessHelper.BT_SERIAL_PORT, "\r\n".getBytes());
+
+        if (UhAccessHelper.sDebug) {
+            LogUtil.d(TAG, this.getClass().getSimpleName() + ": readData(E)");
+        }
+        return ret;
     }
 
     private synchronized ConnectResult connect(String deviceName, boolean useRegExp) {
