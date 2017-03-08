@@ -2,6 +2,7 @@ package jp.co.thcomp.unlimitedhand;
 
 import android.content.Context;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -31,9 +32,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
     private int[] mPhotoReflectorSums = null;
     private float[] mAccelerationSums = null;
     private float[] mGyroSums = null;
-    //    private int mPRAveCount = 1;
-//    private int mAccelAveCount = 1;
-//    private int mGyroAveCount = 1;
+    private float[] mQuaternionSums = null;
     private HashMap<Class, CalibratingData> mCalibratingDataMap = new HashMap<Class, CalibratingData>();
     private boolean mDebug = false;
     private Thread mCalibrationThread;
@@ -57,6 +56,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
             mPhotoReflectorSums = new int[PhotoReflectorData.PHOTO_REFLECTOR_NUM];
             mAccelerationSums = new float[AccelerationData.ACCELERATION_NUM];
             mGyroSums = new float[GyroData.GYRO_NUM];
+            mQuaternionSums = new float[QuaternionData.QUATERNION_NUM];
 
             mCalibrationThread = new Thread(mCalibrationRunnable);
             mCalibrationThread.start();
@@ -73,10 +73,45 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
         boolean ret = false;
 
         if (mCalibrationData != null) {
-            data.mAngleFlatAve = mCalibrationData.mAngleFlatAve;
-            data.mPRAveArray = Arrays.copyOf(mCalibrationData.mPRAveArray, mCalibrationData.mPRAveArray.length);
-            data.mAccelGyroAveArray = Arrays.copyOf(mCalibrationData.mAccelGyroAveArray, mCalibrationData.mAccelGyroAveArray.length);
+            Field[] publicFields = CalibrationData.class.getFields();
             ret = true;
+
+            if (publicFields != null && publicFields.length > 0) {
+                for (Field publicField : publicFields) {
+                    try {
+                        if (java.lang.reflect.Modifier.isPrivate(publicField.getModifiers())) {
+                            if (publicField.getType() == boolean.class) {
+                                publicField.setBoolean(data, publicField.getBoolean(mCalibrationData));
+                            } else if (publicField.getType() == byte.class) {
+                                publicField.setByte(data, publicField.getByte(mCalibrationData));
+                            } else if (publicField.getType() == char.class) {
+                                publicField.setChar(data, publicField.getChar(mCalibrationData));
+                            } else if (publicField.getType() == double.class) {
+                                publicField.setDouble(data, publicField.getDouble(mCalibrationData));
+                            } else if (publicField.getType() == float.class) {
+                                publicField.setFloat(data, publicField.getFloat(mCalibrationData));
+                            } else if (publicField.getType() == int.class) {
+                                publicField.setInt(data, publicField.getInt(mCalibrationData));
+                            } else if (publicField.getType() == long.class) {
+                                publicField.setLong(data, publicField.getLong(mCalibrationData));
+                            } else if (publicField.getType() == short.class) {
+                                publicField.setShort(data, publicField.getShort(mCalibrationData));
+                            }
+                        } else {
+                            Object publicFieldValue = publicField.get(mCalibrationData);
+
+                            if (publicFieldValue instanceof Object[]) {
+                                Object[] tempArray = (Object[]) publicFieldValue;
+                                publicField.set(data, Arrays.copyOf(tempArray, tempArray.length));
+                            } else {
+                                publicField.set(data, publicField.get(mCalibrationData));
+                            }
+                        }
+                    } catch (Exception e) {
+                        ret = false;
+                    }
+                }
+            }
         }
 
         return ret;
@@ -112,10 +147,19 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
             } else if (sensorData instanceof AccelerationData) {
                 calibratingData = mCalibratingDataMap.get(AccelerationData.class);
                 AccelerationData accelerationData = (AccelerationData) sensorData;
+                Float[] rawValueArray = new Float[AccelerationData.ACCELERATION_NUM];
 
                 for (int i = 0; i < AccelerationData.ACCELERATION_NUM; i++) {
-                    mAccelerationSums[i] += accelerationData.getRawValue(i);
+                    rawValueArray[i] = accelerationData.getRawValue(i);
+                    mAccelerationSums[i] += rawValueArray[i];
                     data.mAccelGyroAveArray[i] = mAccelerationSums[i] / calibratingData.count;
+                }
+                if (UhAccessHelper.isEnableDebug()) {
+                    try {
+                        LogUtil.d(TAG, "Calibrating: mAccelerationSums = " + Arrays.toString(mAccelerationSums) + ", count = " + calibratingData.count + ", rawValueArray = " + Arrays.toString(rawValueArray));
+                    } catch (Exception e) {
+                        // 処理なし
+                    }
                 }
                 calibratingData.count++;
 
@@ -130,20 +174,47 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
                 calibratingData = mCalibratingDataMap.get(GyroData.class);
                 GyroData gyroData = (GyroData) sensorData;
                 int baseIndex = AccelerationData.ACCELERATION_NUM + GyroData.SEPARATE_DATA_NUM;
+                Float[] rawValueArray = new Float[GyroData.ACCELERATION_GYRO_NUM - baseIndex];
 
                 for (int i = baseIndex; i < GyroData.ACCELERATION_GYRO_NUM; i++) {
-                    mGyroSums[i - baseIndex] += gyroData.getRawValue(i - baseIndex);
+                    rawValueArray[i - baseIndex] = gyroData.getRawValue(i - baseIndex);
+                    mGyroSums[i - baseIndex] += rawValueArray[i - baseIndex];
                     data.mAccelGyroAveArray[i] = mGyroSums[i - baseIndex] / calibratingData.count;
+                }
+                if (UhAccessHelper.isEnableDebug()) {
+                    try {
+                        LogUtil.d(TAG, "Calibrating: mGyroSums = " + Arrays.toString(mGyroSums) + ", count = " + calibratingData.count + ", rawValueArray = " + Arrays.toString(rawValueArray));
+                    } catch (Exception e) {
+                        // 処理なし
+                    }
                 }
                 calibratingData.count++;
 
-                if (MAX_CALIBRATION_AVERAGE_COUNT < calibratingData.count) {//reset the mGyroAveCount
+                if (MAX_CALIBRATION_AVERAGE_COUNT < calibratingData.count) {//reset the count
                     for (int i = baseIndex; i < GyroData.ACCELERATION_GYRO_NUM; i++) {
                         mGyroSums[i - baseIndex] = data.mAccelGyroAveArray[i];
                     }
                     calibratingData.count = 1;
                     calibratingData.enoughCount = true;
                 }
+            } else if (sensorData instanceof QuaternionData) {
+                calibratingData = mCalibratingDataMap.get(QuaternionData.class);
+                QuaternionData quaternionData = (QuaternionData) sensorData;
+
+                for (int i = 0; i < QuaternionData.QUATERNION_NUM; i++) {
+                    mQuaternionSums[i] += quaternionData.getRawValue(i);
+                    data.mQuaternionAveArray[i] = mQuaternionSums[i] / calibratingData.count;
+                }
+                calibratingData.count++;
+
+                if (MAX_CALIBRATION_AVERAGE_COUNT < calibratingData.count) {//reset the count
+                    for (int i = 0; i < QuaternionData.QUATERNION_NUM; i++) {
+                        mQuaternionSums[i] = data.mQuaternionAveArray[i];
+                    }
+                    calibratingData.count = 1;
+                    calibratingData.enoughCount = true;
+                }
+
             } else if (sensorData instanceof AngleData) {
                 AngleData angleData = (AngleData) sensorData;
 
