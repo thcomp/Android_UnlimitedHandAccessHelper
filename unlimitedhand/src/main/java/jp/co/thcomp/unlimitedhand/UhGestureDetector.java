@@ -2,13 +2,14 @@ package jp.co.thcomp.unlimitedhand;
 
 import android.content.Context;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Map;
 
 import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
 import jp.co.thcomp.unlimitedhand.data.CalibrationData;
 import jp.co.thcomp.unlimitedhand.data.PhotoReflectorData;
+import jp.co.thcomp.util.LogUtil;
 import jp.co.thcomp.util.ThreadUtil;
 
 public class UhGestureDetector {
@@ -28,8 +29,6 @@ public class UhGestureDetector {
         SoftCurve,
         HardCurve,
     }
-
-    ;
 
     public static class HandData {
         public FingerCondition thumb;
@@ -67,11 +66,10 @@ public class UhGestureDetector {
         }
     }
 
-    ;
-
     public static final int DEFAULT_CALIBRATE_INTERVAL_MS = 5 * 1000;
     public static final int DEFAULT_CALIBRATE_RATE_PER_SECOND = 30;
     private static final int DEFAULT_DETECT_THRESHOLD = 10;
+    private static final float CHANGE_DETECT_RATE = 1.5f;
     private static final String TAG = UhGestureDetector.class.getSimpleName();
 
     private Context mContext;
@@ -127,29 +125,38 @@ public class UhGestureDetector {
     }
 
     private HandData detectGestureBaseOnHandOpen(PhotoReflectorData photoReflectorData, CalibrationData data) {
-        HandData handData = new HandData(FingerCondition.Straight);
-        List<Integer> overThresholdPRPositionList = getOverThresholdPRPositionList(photoReflectorData, data);
+        if (UhAccessHelper.isEnableDebug()) {
+            LogUtil.d(TAG, this.getClass().getSimpleName() + ".detectGestureBaseOnHandOpen");
+        }
 
-        if (overThresholdPRPositionList.size() == 0) {
-            // conditionと完全一致
-        } else {
-            switch (mWearDevice) {
-                case RightArm:
-                    for (Integer position : overThresholdPRPositionList) {
-                        UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[position];
+        HandData handData = new HandData(FingerCondition.Straight);
+        HashMap<Integer, Integer> overThresholdPRPositionDiffMap = getOverThresholdPRPositionDiffMap(photoReflectorData, data);
+
+        switch (mWearDevice) {
+            case RightArm:
+                for (Map.Entry<Integer, Integer> entry : overThresholdPRPositionDiffMap.entrySet()) {
+                    UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[entry.getKey()];
+
+                    if (UhAccessHelper.isEnableDebug()) {
+                        LogUtil.d(TAG, pr.name() + ": diff = " + entry.getValue());
+                    }
+                    int value = entry.getValue();
+                    if (value > mDetectThreshold) {
+                        FingerCondition nextCondition = value > (mDetectThreshold * CHANGE_DETECT_RATE) ? FingerCondition.HardCurve : FingerCondition.SoftCurve;
+
                         switch (pr) {
                             case PR_0:
-                                handData.thumb = FingerCondition.SoftCurve;
+                                handData.thumb = nextCondition;
                                 break;
                             case PR_1:
-                                handData.index = FingerCondition.SoftCurve;
+                                handData.index = nextCondition;
                                 break;
                             case PR_2:
-                                handData.middle = FingerCondition.SoftCurve;
+                                handData.middle = nextCondition;
                                 break;
                             case PR_3:
-                                handData.ring = FingerCondition.SoftCurve;
-                                handData.pinky = FingerCondition.SoftCurve;
+                                handData.ring = nextCondition;
+                                handData.pinky = nextCondition;
                                 break;
                             case PR_4:
                             case PR_5:
@@ -159,23 +166,32 @@ public class UhGestureDetector {
                                 break;
                         }
                     }
-                    break;
-                case LeftArm:
-                    for (Integer position : overThresholdPRPositionList) {
-                        UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[position];
+                }
+                break;
+            case LeftArm:
+                for (Map.Entry<Integer, Integer> entry : overThresholdPRPositionDiffMap.entrySet()) {
+                    UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[entry.getKey()];
+
+                    if (UhAccessHelper.isEnableDebug()) {
+                        LogUtil.d(TAG, pr.name() + ": diff = " + entry.getValue());
+                    }
+                    int value = entry.getValue();
+                    if (value > mDetectThreshold) {
+                        FingerCondition nextCondition = value > (mDetectThreshold * CHANGE_DETECT_RATE) ? FingerCondition.HardCurve : FingerCondition.SoftCurve;
+
                         switch (pr) {
                             case PR_0:
-                                handData.ring = FingerCondition.SoftCurve;
-                                handData.pinky = FingerCondition.SoftCurve;
+                                handData.ring = nextCondition;
+                                handData.pinky = nextCondition;
                                 break;
                             case PR_1:
-                                handData.middle = FingerCondition.SoftCurve;
+                                handData.middle = nextCondition;
                                 break;
                             case PR_2:
-                                handData.index = FingerCondition.SoftCurve;
+                                handData.index = nextCondition;
                                 break;
                             case PR_3:
-                                handData.thumb = FingerCondition.SoftCurve;
+                                handData.thumb = nextCondition;
                                 break;
                             case PR_4:
                             case PR_5:
@@ -185,37 +201,46 @@ public class UhGestureDetector {
                                 break;
                         }
                     }
-                    break;
-            }
+                }
+                break;
         }
 
         return handData;
     }
 
     private HandData detectGestureBaseOnHandClose(PhotoReflectorData photoReflectorData, CalibrationData data) {
-        HandData handData = new HandData(FingerCondition.HardCurve);
-        List<Integer> overThresholdPRPositionList = getOverThresholdPRPositionList(photoReflectorData, data);
+        if (UhAccessHelper.isEnableDebug()) {
+            LogUtil.d(TAG, this.getClass().getSimpleName() + ".detectGestureBaseOnHandClose");
+        }
 
-        if (overThresholdPRPositionList.size() == 0) {
-            // conditionと完全一致
-        } else {
-            switch (mWearDevice) {
-                case RightArm:
-                    for (Integer position : overThresholdPRPositionList) {
-                        UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[position];
+        HandData handData = new HandData(FingerCondition.HardCurve);
+        HashMap<Integer, Integer> overThresholdPRPositionDiffMap = getOverThresholdPRPositionDiffMap(photoReflectorData, data);
+
+        switch (mWearDevice) {
+            case RightArm:
+                for (Map.Entry<Integer, Integer> entry : overThresholdPRPositionDiffMap.entrySet()) {
+                    UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[entry.getKey()];
+
+                    if (UhAccessHelper.isEnableDebug()) {
+                        LogUtil.d(TAG, pr.name() + ": diff = " + entry.getValue());
+                    }
+                    int value = entry.getValue();
+                    if (value > mDetectThreshold) {
+                        FingerCondition nextCondition = value > (mDetectThreshold * CHANGE_DETECT_RATE) ? FingerCondition.Straight : FingerCondition.SoftCurve;
+
                         switch (pr) {
                             case PR_0:
-                                handData.thumb = FingerCondition.SoftCurve;
+                                handData.thumb = nextCondition;
                                 break;
                             case PR_1:
-                                handData.index = FingerCondition.SoftCurve;
+                                handData.index = nextCondition;
                                 break;
                             case PR_2:
-                                handData.index = FingerCondition.SoftCurve;
+                                handData.index = nextCondition;
                                 break;
                             case PR_3:
-                                handData.ring = FingerCondition.SoftCurve;
-                                handData.pinky = FingerCondition.SoftCurve;
+                                handData.ring = nextCondition;
+                                handData.pinky = nextCondition;
                                 break;
                             case PR_4:
                             case PR_5:
@@ -225,23 +250,32 @@ public class UhGestureDetector {
                                 break;
                         }
                     }
-                    break;
-                case LeftArm:
-                    for (Integer position : overThresholdPRPositionList) {
-                        UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[position];
+                }
+                break;
+            case LeftArm:
+                for (Map.Entry<Integer, Integer> entry : overThresholdPRPositionDiffMap.entrySet()) {
+                    UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[entry.getKey()];
+
+                    if (UhAccessHelper.isEnableDebug()) {
+                        LogUtil.d(TAG, pr.name() + ": diff = " + entry.getValue());
+                    }
+                    int value = entry.getValue();
+                    if (value > mDetectThreshold) {
+                        FingerCondition nextCondition = value > (mDetectThreshold * CHANGE_DETECT_RATE) ? FingerCondition.Straight : FingerCondition.SoftCurve;
+
                         switch (pr) {
                             case PR_0:
-                                handData.ring = FingerCondition.SoftCurve;
-                                handData.pinky = FingerCondition.SoftCurve;
+                                handData.ring = nextCondition;
+                                handData.pinky = nextCondition;
                                 break;
                             case PR_1:
-                                handData.index = FingerCondition.SoftCurve;
+                                handData.index = nextCondition;
                                 break;
                             case PR_2:
-                                handData.index = FingerCondition.SoftCurve;
+                                handData.index = nextCondition;
                                 break;
                             case PR_3:
-                                handData.thumb = FingerCondition.SoftCurve;
+                                handData.thumb = nextCondition;
                                 break;
                             case PR_4:
                             case PR_5:
@@ -251,24 +285,30 @@ public class UhGestureDetector {
                                 break;
                         }
                     }
-                    break;
-            }
+                }
+                break;
         }
 
         return handData;
     }
 
     private HandData detectGestureBaseOnPickObject(PhotoReflectorData photoReflectorData, CalibrationData data) {
-        HandData handData = new HandData(FingerCondition.SoftCurve);
-        List<Integer> overThresholdPRPositionList = getOverThresholdPRPositionList(photoReflectorData, data);
+        if (UhAccessHelper.isEnableDebug()) {
+            LogUtil.d(TAG, this.getClass().getSimpleName() + ".detectGestureBaseOnPickObject");
+        }
 
-        if (overThresholdPRPositionList.size() == 0) {
-            // conditionと完全一致
-        } else {
-            switch (mWearDevice) {
-                case RightArm:
-                    for (Integer position : overThresholdPRPositionList) {
-                        UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[position];
+        HandData handData = new HandData(FingerCondition.SoftCurve);
+        HashMap<Integer, Integer> overThresholdPRPositionDiffMap = getOverThresholdPRPositionDiffMap(photoReflectorData, data);
+
+        switch (mWearDevice) {
+            case RightArm:
+                for (Map.Entry<Integer, Integer> entry : overThresholdPRPositionDiffMap.entrySet()) {
+                    UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[entry.getKey()];
+
+                    if (UhAccessHelper.isEnableDebug()) {
+                        LogUtil.d(TAG, pr.name() + ": diff = " + entry.getValue());
+                    }
+                    if (entry.getValue() > mDetectThreshold) {
                         switch (pr) {
                             case PR_0:
                                 handData.thumb = FingerCondition.SoftCurve;
@@ -291,24 +331,22 @@ public class UhGestureDetector {
                                 break;
                         }
                     }
-                    break;
-            }
+                }
+                break;
         }
 
         return handData;
     }
 
-    private List<Integer> getOverThresholdPRPositionList(PhotoReflectorData photoReflectorData, CalibrationData calibrationData) {
-        ArrayList<Integer> overThresholdIndexList = new ArrayList<Integer>();
+    private HashMap<Integer, Integer> getOverThresholdPRPositionDiffMap(PhotoReflectorData photoReflectorData, CalibrationData calibrationData) {
+        HashMap<Integer, Integer> overThresholdIndexDiffMap = new HashMap<Integer, Integer>();
 
         // 閾値を超えたPhoto-Reflectorのインデックス番号を保持
         for (int i = 0, size = photoReflectorData.getSensorNum(); i < size; i++) {
-            if (Math.abs(calibrationData.mPRAveArray[i] - photoReflectorData.getRawValue(i)) > mDetectThreshold) {
-                overThresholdIndexList.add(i);
-            }
+            overThresholdIndexDiffMap.put(i, Math.abs(calibrationData.mPRAveArray[i] - photoReflectorData.getRawValue(i)));
         }
 
-        return overThresholdIndexList;
+        return overThresholdIndexDiffMap;
     }
 
     private class GestureDetector implements UhAccessHelper.OnSensorPollingListener {
@@ -350,8 +388,10 @@ public class UhGestureDetector {
 
                         for (int i = 0, size = valueArray.length; i < size; i++) {
                             CalibrationData calibrationData = valueArray[i];
-                            int tempMaxDiffSize = 0;
 
+                            if (UhAccessHelper.isEnableDebug()) {
+                                LogUtil.d(TAG, keyArray[i].handStatus.name() + ": Calibrated PR Ave: " + Arrays.toString(calibrationData.mPRAveArray) + ", Raw PR: " + photoReflectorData.toString());
+                            }
                             for (int j = 0, sensorSize = photoReflectorData.getSensorNum(); j < sensorSize; j++) {
                                 // 各Calibrationを行った状態との乖離を保存
                                 diffSizeArrayPerCondition[i] += Math.abs(calibrationData.mPRAveArray[j] - photoReflectorData.getRawValue(j));
@@ -361,6 +401,9 @@ public class UhGestureDetector {
                                 minDiffSize = diffSizeArrayPerCondition[i];
                                 minDiffSizeIndex = i;
                             }
+                        }
+                        if (UhAccessHelper.isEnableDebug()) {
+                            LogUtil.d(TAG, "All diff: " + Arrays.toString(diffSizeArrayPerCondition));
                         }
 
                         if (minDiffSizeIndex < valueArray.length) {
