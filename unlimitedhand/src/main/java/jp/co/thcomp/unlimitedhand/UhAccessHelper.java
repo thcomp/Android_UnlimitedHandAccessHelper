@@ -102,6 +102,17 @@ public class UhAccessHelper {
         }
     }
 
+    public enum PhotoReflector {
+        PR_0,
+        PR_1,
+        PR_2,
+        PR_3,
+        PR_4,
+        PR_5,
+        PR_6,
+        PR_7,
+    }
+
     private enum AccessStatus {
         NoSupportBT,
         Init,
@@ -124,7 +135,8 @@ public class UhAccessHelper {
     private Thread mSensorPollingThread;
     private final HashMap<OnSensorPollingListener, Integer> mPollingListenerMap = new HashMap<OnSensorPollingListener, Integer>();
     private int mPollingTargetFlag = 0;
-    private CalibrationData mCalibrationData;
+    //private CalibrationData mCalibrationData;
+    private HashMap<CalibrationCondition, CalibrationData> mCalibrationDataMap = new HashMap<CalibrationCondition, CalibrationData>();
     private UhCalibrator mCalibrator;
     private CalibrationStatus mCalibrationStatus = CalibrationStatus.Init;
     private final ArrayList<OnCalibrationStatusChangeListener> mOnCalibrationStatusChangeListenerList = new ArrayList<OnCalibrationStatusChangeListener>();
@@ -194,33 +206,36 @@ public class UhAccessHelper {
         }
     }
 
-    public boolean isCalibrated() {
-        return mCalibrationStatus == CalibrationStatus.CalibrateSuccess;
-    }
+    public void startCalibration(Context context, final CalibrationCondition condition, final OnCalibrationStatusChangeListener listener) {
+        if(condition == null){
+            throw new NullPointerException("condition == null");
+        }
 
-    public void startCalibration(Context context, int calibrateDeviceAngle, final OnCalibrationStatusChangeListener listener) {
         synchronized (this) {
             switch (mCalibrationStatus) {
                 case Init:
                 case CalibrateFail:
+                case CalibrateSuccess:
+                    // start new caliration
                     mCalibrationStatus = CalibrationStatus.Calibrating;
                     mCalibrator = new UhCalibrator(mContext, this, sDebug);
                     mOnCalibrationStatusChangeListenerList.add(listener);
                     mCalibrator.setOnCalibrationStatusChangeListener(new OnCalibrationStatusChangeListener() {
                         @Override
-                        public void onCalibrationStatusChange(CalibrationStatus status) {
+                        public void onCalibrationStatusChange(CalibrationCondition calibrationCondition, CalibrationStatus status) {
                             mCalibrationStatus = status;
 
                             synchronized (UhAccessHelper.this) {
                                 try {
                                     if (status == CalibrationStatus.CalibrateSuccess) {
-                                        mCalibrationData = new CalibrationData();
-                                        mCalibrator.getCalibrationData(mCalibrationData);
-                                        LogUtil.d(TAG, mCalibrationData.toString());
+                                        CalibrationData calibrationData = new CalibrationData();
+                                        mCalibrator.getCalibrationData(calibrationData);
+                                        mCalibrationDataMap.put(calibrationCondition, calibrationData);
+                                        LogUtil.d(TAG, calibrationData.toString());
                                     }
 
                                     for (OnCalibrationStatusChangeListener onCalibrationStatusChangeListener : mOnCalibrationStatusChangeListenerList) {
-                                        onCalibrationStatusChangeListener.onCalibrationStatusChange(status);
+                                        onCalibrationStatusChangeListener.onCalibrationStatusChange(condition, status);
                                     }
                                 } finally {
                                     mCalibrator = null;
@@ -228,17 +243,7 @@ public class UhAccessHelper {
                             }
                         }
                     });
-                    mCalibrator.startCalibration(calibrateDeviceAngle);
-                    break;
-                case CalibrateSuccess:
-                    if (listener != null) {
-                        ThreadUtil.runOnMainThread(context, new Runnable() {
-                            @Override
-                            public void run() {
-                                listener.onCalibrationStatusChange(mCalibrationStatus);
-                            }
-                        });
-                    }
+                    mCalibrator.startCalibration(condition);
                     break;
                 case Calibrating:
                     mOnCalibrationStatusChangeListenerList.add(listener);
@@ -253,6 +258,7 @@ public class UhAccessHelper {
         synchronized (this) {
             if (mCalibrator != null) {
                 mCalibrator.stopCalibration();
+                mCalibrator = null;
             }
         }
     }
@@ -307,9 +313,6 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.PhotoSensor.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
-                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
-                            data.calibrate(mCalibrationData);
-                        }
                     }
                     break;
             }
@@ -336,9 +339,6 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Angle.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
-                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
-                            data.calibrate(mCalibrationData);
-                        }
                     }
                     break;
             }
@@ -365,9 +365,6 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Temperature.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
-                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
-                            data.calibrate(mCalibrationData);
-                        }
                     }
                     break;
             }
@@ -394,9 +391,6 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Acceleration.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
-                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
-                            data.calibrate(mCalibrationData);
-                        }
                     }
                     break;
             }
@@ -423,9 +417,6 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Gyro.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
-                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
-                            data.calibrate(mCalibrationData);
-                        }
                     }
                     break;
             }
@@ -452,9 +443,6 @@ public class UhAccessHelper {
                     if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, SendCommand.Quaternion.getLineCode())) {
                         mSendSemaphore.start();
                         ret = data.expandRawData(readData());
-                        if (ret && (mCalibrationStatus == CalibrationStatus.CalibrateSuccess) && (mCalibrationData != null)) {
-                            data.calibrate(mCalibrationData);
-                        }
                     }
                     break;
             }
@@ -588,6 +576,10 @@ public class UhAccessHelper {
         }
 
         return ret;
+    }
+
+    HashMap<CalibrationCondition, CalibrationData> getCalibrationDataMap(){
+        return mCalibrationDataMap;
     }
 
     private byte[] readData() {
@@ -737,32 +729,26 @@ public class UhAccessHelper {
 
                 if ((pollingTargetFlag & POLLING_PHOTO_REFLECTOR) == POLLING_PHOTO_REFLECTOR) {
                     readPhotoReflector(photoReflectorData);
-                    photoReflectorData.calibrate(mCalibrationData);
                     retList.add(photoReflectorData);
                 }
                 if ((pollingTargetFlag & POLLING_ANGLE) == POLLING_ANGLE) {
                     readAngle(angleData);
-                    angleData.calibrate(mCalibrationData);
                     retList.add(angleData);
                 }
                 if ((pollingTargetFlag & POLLING_TEMPERATURE) == POLLING_TEMPERATURE) {
                     readTemperature(temperatureData);
-                    temperatureData.calibrate(mCalibrationData);
                     retList.add(temperatureData);
                 }
                 if ((pollingTargetFlag & POLLING_ACCELERATION) == POLLING_ACCELERATION) {
                     readAcceleration(accelerationData);
-                    accelerationData.calibrate(mCalibrationData);
                     retList.add(accelerationData);
                 }
                 if ((pollingTargetFlag & POLLING_GYRO) == POLLING_GYRO) {
                     readGyro(gyroData);
-                    gyroData.calibrate(mCalibrationData);
                     retList.add(gyroData);
                 }
                 if ((pollingTargetFlag & POLLING_QUATERNION) == POLLING_QUATERNION) {
                     readQuaternion(quaternionData);
-                    quaternionData.calibrate(mCalibrationData);
                     retList.add(quaternionData);
                 }
 

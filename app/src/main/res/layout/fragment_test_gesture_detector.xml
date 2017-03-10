@@ -1,25 +1,71 @@
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             xmlns:tools="http://schemas.android.com/tools"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            tools:context="jp.co.thcomp.unlimited_hand.fragment.TestInputFragment">
+            tools:context="jp.co.thcomp.unlimited_hand.fragment.TestGestureDetectorFragment">
+
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
         android:orientation="vertical">
 
-        <android.support.v7.widget.SwitchCompat
-            android:id="@+id/swtEnableGestureDetector"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="enable gesture detector"/>
-
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal">
 
+            <!-- pinky -->
+            <View
+                android:id="@+id/vPinky"
+                android:layout_width="@dimen/finger_width"
+                android:layout_height="@dimen/finger_joint_height"
+                android:background="@android:color/white" />
+            <View
+                android:layout_width="@dimen/finger_interval"
+                android:layout_height="@dimen/finger_joint_height"
+                android:visibility="invisible" />
+
+            <!-- ring -->
+            <View
+                android:id="@+id/vRing"
+                android:layout_width="@dimen/finger_width"
+                android:layout_height="@dimen/finger_joint_height"
+                android:background="@android:color/white" />
+            <View
+                android:layout_width="@dimen/finger_interval"
+                android:layout_height="@dimen/finger_joint_height"
+                android:visibility="invisible" />
+
+            <!-- middle -->
+            <View
+                android:id="@+id/vMiddle"
+                android:layout_width="@dimen/finger_width"
+                android:layout_height="@dimen/finger_joint_height"
+                android:background="@android:color/white" />
+            <View
+                android:layout_width="@dimen/finger_interval"
+                android:layout_height="@dimen/finger_joint_height"
+                android:visibility="invisible" />
+
+            <!-- index -->
+            <View
+                android:id="@+id/vIndex"
+                android:layout_width="@dimen/finger_width"
+                android:layout_height="@dimen/finger_joint_height"
+                android:background="@android:color/white" />
+            <View
+                android:layout_width="@dimen/finger_interval"
+                android:layout_height="@dimen/finger_joint_height"
+                android:visibility="invisible" />
+
+            <!-- thumb -->
+            <View
+                android:id="@+id/vThumb"
+                android:layout_width="@dimen/finger_width"
+                android:layout_height="@dimen/finger_joint_height"
+                android:background="@android:color/white" />
         </LinearLayout>
 
     </LinearLayout>
-</ScrollView>
+</RelativeLayout>

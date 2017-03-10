@@ -1,5 +1,10 @@
 package jp.co.thcomp.unlimitedhand.data;
 
+import java.util.Arrays;
+
+import jp.co.thcomp.unlimitedhand.UhAccessHelper;
+import jp.co.thcomp.util.LogUtil;
+
 public abstract class AbstractSensorData<DataType> {
     protected final String channelData[] = new String[getSensorNum()];
     protected final String calibratedChannelData[] = isSupportCalibration() ? new String[getSensorNum()] : null;
@@ -15,6 +20,10 @@ public abstract class AbstractSensorData<DataType> {
     }
 
     public boolean expandRawData(byte[] rawData) {
+        if (UhAccessHelper.isEnableDebug()) {
+            LogUtil.d(UhAccessHelper.TAG, getClass().getSimpleName() + ".expandRawData: rawData = " + Arrays.toString(rawData));
+        }
+
         boolean ret = true;
         String[] rawDataSplitArray = new String(rawData).split(getRawDataSeparator());
 

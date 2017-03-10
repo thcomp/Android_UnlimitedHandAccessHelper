@@ -37,7 +37,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
     private boolean mDebug = false;
     private Thread mCalibrationThread;
     private CalibrationStatus mResultStatus = CalibrationStatus.Init;
-    private int mCalibrateDeviceAngle = 0;
+    private CalibrationCondition mCalibrationCondition;
 
     public UhCalibrator(Context context, UhAccessHelper uhAccessHelper, boolean debug) {
         mContext = context;
@@ -49,8 +49,11 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
         mListener = listener;
     }
 
-    public void startCalibration(int calibrateDeviceAngle) {
-        mCalibrateDeviceAngle = calibrateDeviceAngle;
+    public void startCalibration(CalibrationCondition calibrationCondition) {
+        if(calibrationCondition == null){
+            throw new NullPointerException("calibrationCondition == null");
+        }
+        mCalibrationCondition = calibrationCondition;
 
         if (mCalibrationThread == null) {
             mPhotoReflectorSums = new int[PhotoReflectorData.PHOTO_REFLECTOR_NUM];
@@ -235,7 +238,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
         }
 
         // if average angle for calibration is in the range, calibration finishes
-        if (Math.abs(data.mAngleFlatAve - mCalibrateDeviceAngle) <= CALIBRATION_AVERAGE_RANGE) {
+        if (Math.abs(data.mAngleFlatAve - mCalibrationCondition.deviceAngleDegree) <= CALIBRATION_AVERAGE_RANGE) {
             boolean enoughCalibrated = true;
 
             for (CalibratingData tempCalibratingData : mCalibratingDataMap.values()) {
@@ -291,7 +294,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
             mOnetimeSemaphore.start();
 
             if (mCalibrationData != null) {
-                if (Math.abs(mCalibrationData.mAngleFlatAve - mCalibrateDeviceAngle) <= CALIBRATION_AVERAGE_RANGE) {
+                if (Math.abs(mCalibrationData.mAngleFlatAve - mCalibrationCondition.deviceAngleDegree) <= CALIBRATION_AVERAGE_RANGE) {
                     mResultStatus = CalibrationStatus.CalibrateSuccess;
                 }
             } else {
@@ -302,7 +305,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
                 @Override
                 public void run() {
                     if (mListener != null) {
-                        mListener.onCalibrationStatusChange(mResultStatus);
+                        mListener.onCalibrationStatusChange(mCalibrationCondition, mResultStatus);
                     }
                 }
             });

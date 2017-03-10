@@ -3,4 +3,7 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="alarm_display_text_size">100dp</dimen>
+    <dimen name="finger_interval">16dp</dimen>
+    <dimen name="finger_width">32dp</dimen>
+    <dimen name="finger_joint_height">48dp</dimen>
 </resources>
