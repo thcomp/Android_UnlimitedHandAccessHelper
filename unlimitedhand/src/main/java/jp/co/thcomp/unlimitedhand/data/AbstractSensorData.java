@@ -72,4 +72,12 @@ public abstract class AbstractSensorData<DataType> {
 
         return ret;
     }
+
+    @Override
+    public String toString() {
+        return "AbstractSensorData{" +
+                "calibratedChannelData=" + Arrays.toString(calibratedChannelData) +
+                ", channelData=" + Arrays.toString(channelData) +
+                '}';
+    }
 }

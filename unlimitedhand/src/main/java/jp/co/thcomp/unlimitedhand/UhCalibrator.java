@@ -19,7 +19,7 @@ import jp.co.thcomp.util.ThreadUtil;
 
 class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
     private static final String TAG = UhCalibrator.class.getSimpleName();
-    private static final int MAX_CALIBRATION_AVERAGE_COUNT = 10;
+    private static final int MAX_CALIBRATION_AVERAGE_COUNT = 20;
     private static final float CALIBRATION_AVERAGE_RANGE = 10f;
 
     private Context mContext;

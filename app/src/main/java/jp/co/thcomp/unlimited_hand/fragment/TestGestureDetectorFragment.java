@@ -7,18 +7,20 @@ import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.Toast;
 
+import jp.co.thcomp.unlimited_hand.Common;
 import jp.co.thcomp.unlimited_hand.R;
 import jp.co.thcomp.unlimitedhand.CalibrationCondition;
 import jp.co.thcomp.unlimitedhand.CalibrationStatus;
 import jp.co.thcomp.unlimitedhand.OnCalibrationStatusChangeListener;
 import jp.co.thcomp.unlimitedhand.UhGestureDetector;
+import jp.co.thcomp.util.PreferenceUtil;
 import jp.co.thcomp.util.ThreadUtil;
 import jp.co.thcomp.util.ToastUtil;
 
@@ -45,6 +47,8 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        mUhGestureDetector = new UhGestureDetector(getActivity(), mUHAccessHelper, UhGestureDetector.WearDevice.RightArm);
+        mUhGestureDetector.setGestureListener(mGestureListener);
         new CalibrationTask(new CalibrationCondition(0, CalibrationCondition.HandStatus.HandOpen)) {
             @Override
             protected void onPostExecute(Void o) {
@@ -67,24 +71,23 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
                                     ToastUtil.showToast(getActivity(), "fail to calibrate: " + CalibrationCondition.HandStatus.HandClose.name(), Toast.LENGTH_SHORT);
                                 }
 
-                                new CalibrationTask(new CalibrationCondition(0, CalibrationCondition.HandStatus.PickObject)) {
-                                    @Override
-                                    protected void onPostExecute(Void o) {
-                                        super.onPostExecute(o);
-
-                                        Activity activity = getActivity();
-                                        if ((activity != null) && !activity.isFinishing()) {
-                                            if (mResult != CalibrationStatus.CalibrateSuccess) {
-                                                ToastUtil.showToast(getActivity(), "fail to calibrate: " + CalibrationCondition.HandStatus.PickObject.name(), Toast.LENGTH_SHORT);
-                                            }
-
-                                            mUhGestureDetector = new UhGestureDetector(activity, mUHAccessHelper, UhGestureDetector.WearDevice.RightArm);
-                                            mUhGestureDetector.setGestureListener(mGestureListener);
-                                            mUhGestureDetector.startGestureListening();
-                                        }
-                                    }
-
-                                }.execute();
+//                                new CalibrationTask(new CalibrationCondition(0, CalibrationCondition.HandStatus.PickObject)) {
+//                                    @Override
+//                                    protected void onPostExecute(Void o) {
+//                                        super.onPostExecute(o);
+//
+//                                        Activity activity = getActivity();
+//                                        if ((activity != null) && !activity.isFinishing()) {
+//                                            if (mResult != CalibrationStatus.CalibrateSuccess) {
+//                                                ToastUtil.showToast(getActivity(), "fail to calibrate: " + CalibrationCondition.HandStatus.PickObject.name(), Toast.LENGTH_SHORT);
+//                                            }
+//
+//                                            mUhGestureDetector.startGestureListening();
+//                                        }
+//                                    }
+//
+//                                }.execute();
+                                mUhGestureDetector.startGestureListening();
                             }
                         }
                     }.execute();
@@ -103,7 +106,29 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         mRootView = super.onCreateView(inflater, container, savedInstanceState);
+        mRootView.findViewById(R.id.btnUpdate).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                EditText etGestureDetectThreshold = (EditText) mRootView.findViewById(R.id.etGestureDetectThreshold);
+                String gestureDetectThreshold = etGestureDetectThreshold.getText().toString();
+                mUhGestureDetector.setDetectThreshold(Integer.parseInt(gestureDetectThreshold));
+                ToastUtil.showToast(getActivity(), "Update gesture detect: " + gestureDetectThreshold, Toast.LENGTH_SHORT);
+            }
+        });
+        ((EditText) mRootView.findViewById(R.id.etGestureDetectThreshold)).setText(String.valueOf(PreferenceUtil.readPrefInt(getActivity(), Common.PREF_INT_GESTURE_DETECT_THRESHOLD, mUhGestureDetector.getDetectThreshold())));
         return mRootView;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        EditText etGestureDetectThreshold = (EditText) mRootView.findViewById(R.id.etGestureDetectThreshold);
+        try {
+            PreferenceUtil.writePref(getActivity(), Common.PREF_INT_GESTURE_DETECT_THRESHOLD, Integer.parseInt(etGestureDetectThreshold.getText().toString()));
+        } catch (NumberFormatException e) {
+            // 処理なし
+        }
     }
 
     private UhGestureDetector.OnGestureListener mGestureListener = new UhGestureDetector.OnGestureListener() {
@@ -116,28 +141,30 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
                     data.ring,
                     data.pinky,
             };
-            int[] allFingerResId = new int[]{
-                    R.id.vThumb,
-                    R.id.vIndex,
-                    R.id.vMiddle,
-                    R.id.vRing,
-                    R.id.vPinky,
+            int[][] allFingerResId = new int[][]{
+                    {R.id.vThumb1, R.id.vThumb2},
+                    {R.id.vIndex1, R.id.vIndex2},
+                    {R.id.vMiddle1, R.id.vMiddle2},
+                    {R.id.vRing1, R.id.vRing2},
+                    {R.id.vPinky1, R.id.vPinky2},
             };
 
-            for(int i=0, size=allFingerCondition.length; i<size; i++){
+            for (int i = 0, size = allFingerCondition.length; i < size; i++) {
                 int color = Color.WHITE;
-                switch (allFingerCondition[i]){
+                switch (allFingerCondition[i]) {
                     case Straight:
-                        color = Color.LTGRAY;
+                        mRootView.findViewById(allFingerResId[i][0]).setVisibility(View.VISIBLE);
+                        mRootView.findViewById(allFingerResId[i][1]).setVisibility(View.VISIBLE);
                         break;
                     case SoftCurve:
-                        color = Color.GREEN;
+                        mRootView.findViewById(allFingerResId[i][0]).setVisibility(View.VISIBLE);
+                        mRootView.findViewById(allFingerResId[i][1]).setVisibility(View.INVISIBLE);
                         break;
                     case HardCurve:
-                        color = Color.BLUE;
+                        mRootView.findViewById(allFingerResId[i][0]).setVisibility(View.INVISIBLE);
+                        mRootView.findViewById(allFingerResId[i][1]).setVisibility(View.INVISIBLE);
                         break;
                 }
-                mRootView.findViewById(allFingerResId[i]).setBackgroundColor(color);
             }
         }
     };
@@ -203,7 +230,7 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
         @Override
         protected void onPostExecute(Void o) {
             super.onPostExecute(o);
-            if(mCalibratingDialog != null){
+            if (mCalibratingDialog != null) {
                 mCalibratingDialog.dismiss();
                 mCalibratingDialog = null;
             }

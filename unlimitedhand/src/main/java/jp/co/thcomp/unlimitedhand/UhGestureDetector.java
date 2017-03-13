@@ -116,6 +116,10 @@ public class UhGestureDetector {
         mDetectThreshold = detectThreshold;
     }
 
+    public int getDetectThreshold() {
+        return mDetectThreshold;
+    }
+
     public void startCalibration(Context context, CalibrationCondition calibrationCondition, final OnCalibrationStatusChangeListener listener) {
         mUhAccessHelper.startCalibration(context, calibrationCondition, listener);
     }
@@ -124,7 +128,7 @@ public class UhGestureDetector {
         mUhAccessHelper.stopCalibration();
     }
 
-    private HandData detectGestureBaseOnHandOpen(PhotoReflectorData photoReflectorData, CalibrationData data) {
+    private HandData detectGestureBaseOnHandOpen(PhotoReflectorData photoReflectorData, CalibrationData data, CalibrationData oppositeCalibrationData) {
         if (UhAccessHelper.isEnableDebug()) {
             LogUtil.d(TAG, this.getClass().getSimpleName() + ".detectGestureBaseOnHandOpen");
         }
@@ -134,72 +138,84 @@ public class UhGestureDetector {
 
         switch (mWearDevice) {
             case RightArm:
-                for (Map.Entry<Integer, Integer> entry : overThresholdPRPositionDiffMap.entrySet()) {
-                    UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[entry.getKey()];
-
+                for (UhAccessHelper.PhotoReflector pr : UhAccessHelper.PhotoReflector.values()) {
                     if (UhAccessHelper.isEnableDebug()) {
-                        LogUtil.d(TAG, pr.name() + ": diff = " + entry.getValue());
+                        LogUtil.d(TAG, pr.name() + ": diff = " + overThresholdPRPositionDiffMap.get(pr.ordinal()));
                     }
-                    int value = entry.getValue();
-                    if (value > mDetectThreshold) {
-                        FingerCondition nextCondition = value > (mDetectThreshold * CHANGE_DETECT_RATE) ? FingerCondition.HardCurve : FingerCondition.SoftCurve;
+                    int currentPrValue = photoReflectorData.getRawValue(pr.ordinal());
+                    int diffSensorValueInterCalibration = Math.abs(data.mPRAveArray[pr.ordinal()] - oppositeCalibrationData.mPRAveArray[pr.ordinal()]);
+                    int diffSensorValue = Math.abs(data.mPRAveArray[pr.ordinal()] - currentPrValue);
+                    FingerCondition nextCondition;
 
-                        switch (pr) {
-                            case PR_0:
-                                handData.thumb = nextCondition;
-                                break;
-                            case PR_1:
-                                handData.index = nextCondition;
-                                break;
-                            case PR_2:
-                                handData.middle = nextCondition;
-                                break;
-                            case PR_3:
-                                handData.ring = nextCondition;
-                                handData.pinky = nextCondition;
-                                break;
-                            case PR_4:
-                            case PR_5:
-                            case PR_6:
-                            case PR_7:
-                                // HandOpen時はこれらのPhoto-Reflectorの動作はハンドリングしない
-                                break;
-                        }
+                    if ((data.mPRAveArray[pr.ordinal()] < oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue < (data.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        nextCondition = FingerCondition.Straight;
+                    } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] - diffSensorValueInterCalibration / 3))) {
+                        nextCondition = FingerCondition.Straight;
+                    } else {
+                        nextCondition = diffSensorValue > (diffSensorValueInterCalibration * 2 / 3) ? FingerCondition.HardCurve : FingerCondition.SoftCurve;
+                    }
+
+                    switch (pr) {
+                        case PR_0:
+                            handData.thumb = nextCondition;
+                            break;
+                        case PR_1:
+                            handData.index = nextCondition;
+                            break;
+                        case PR_2:
+                            handData.middle = nextCondition;
+                            break;
+                        case PR_3:
+                            handData.ring = nextCondition;
+                            handData.pinky = nextCondition;
+                            break;
+                        case PR_4:
+                        case PR_5:
+                        case PR_6:
+                        case PR_7:
+                            // HandOpen時はこれらのPhoto-Reflectorの動作はハンドリングしない
+                            break;
                     }
                 }
                 break;
             case LeftArm:
-                for (Map.Entry<Integer, Integer> entry : overThresholdPRPositionDiffMap.entrySet()) {
-                    UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[entry.getKey()];
-
+                for (UhAccessHelper.PhotoReflector pr : UhAccessHelper.PhotoReflector.values()) {
                     if (UhAccessHelper.isEnableDebug()) {
-                        LogUtil.d(TAG, pr.name() + ": diff = " + entry.getValue());
+                        LogUtil.d(TAG, pr.name() + ": diff = " + overThresholdPRPositionDiffMap.get(pr.ordinal()));
                     }
-                    int value = entry.getValue();
-                    if (value > mDetectThreshold) {
-                        FingerCondition nextCondition = value > (mDetectThreshold * CHANGE_DETECT_RATE) ? FingerCondition.HardCurve : FingerCondition.SoftCurve;
+                    int currentPrValue = photoReflectorData.getRawValue(pr.ordinal());
+                    int diffSensorValueInterCalibration = Math.abs(data.mPRAveArray[pr.ordinal()] - oppositeCalibrationData.mPRAveArray[pr.ordinal()]);
+                    int diffSensorValue = Math.abs(data.mPRAveArray[pr.ordinal()] - photoReflectorData.getRawValue(pr.ordinal()));
+                    FingerCondition nextCondition;
 
-                        switch (pr) {
-                            case PR_0:
-                                handData.ring = nextCondition;
-                                handData.pinky = nextCondition;
-                                break;
-                            case PR_1:
-                                handData.middle = nextCondition;
-                                break;
-                            case PR_2:
-                                handData.index = nextCondition;
-                                break;
-                            case PR_3:
-                                handData.thumb = nextCondition;
-                                break;
-                            case PR_4:
-                            case PR_5:
-                            case PR_6:
-                            case PR_7:
-                                // HandOpen時はこれらのPhoto-Reflectorの動作はハンドリングしない
-                                break;
-                        }
+                    if ((data.mPRAveArray[pr.ordinal()] < oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue < (data.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        nextCondition = FingerCondition.Straight;
+                    } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] - diffSensorValueInterCalibration / 3))) {
+                        nextCondition = FingerCondition.Straight;
+                    } else {
+                        nextCondition = diffSensorValue > (diffSensorValueInterCalibration * 2 / 3) ? FingerCondition.HardCurve : FingerCondition.SoftCurve;
+                    }
+
+                    switch (pr) {
+                        case PR_0:
+                            handData.ring = nextCondition;
+                            handData.pinky = nextCondition;
+                            break;
+                        case PR_1:
+                            handData.middle = nextCondition;
+                            break;
+                        case PR_2:
+                            handData.index = nextCondition;
+                            break;
+                        case PR_3:
+                            handData.thumb = nextCondition;
+                            break;
+                        case PR_4:
+                        case PR_5:
+                        case PR_6:
+                        case PR_7:
+                            // HandOpen時はこれらのPhoto-Reflectorの動作はハンドリングしない
+                            break;
                     }
                 }
                 break;
@@ -208,7 +224,7 @@ public class UhGestureDetector {
         return handData;
     }
 
-    private HandData detectGestureBaseOnHandClose(PhotoReflectorData photoReflectorData, CalibrationData data) {
+    private HandData detectGestureBaseOnHandClose(PhotoReflectorData photoReflectorData, CalibrationData data, CalibrationData oppositeCalibrationData) {
         if (UhAccessHelper.isEnableDebug()) {
             LogUtil.d(TAG, this.getClass().getSimpleName() + ".detectGestureBaseOnHandClose");
         }
@@ -218,72 +234,84 @@ public class UhGestureDetector {
 
         switch (mWearDevice) {
             case RightArm:
-                for (Map.Entry<Integer, Integer> entry : overThresholdPRPositionDiffMap.entrySet()) {
-                    UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[entry.getKey()];
-
+                for (UhAccessHelper.PhotoReflector pr : UhAccessHelper.PhotoReflector.values()) {
                     if (UhAccessHelper.isEnableDebug()) {
-                        LogUtil.d(TAG, pr.name() + ": diff = " + entry.getValue());
+                        LogUtil.d(TAG, pr.name() + ": diff = " + overThresholdPRPositionDiffMap.get(pr.ordinal()));
                     }
-                    int value = entry.getValue();
-                    if (value > mDetectThreshold) {
-                        FingerCondition nextCondition = value > (mDetectThreshold * CHANGE_DETECT_RATE) ? FingerCondition.Straight : FingerCondition.SoftCurve;
+                    int currentPrValue = photoReflectorData.getRawValue(pr.ordinal());
+                    int diffSensorValueInterCalibration = Math.abs(data.mPRAveArray[pr.ordinal()] - oppositeCalibrationData.mPRAveArray[pr.ordinal()]);
+                    int diffSensorValue = Math.abs(data.mPRAveArray[pr.ordinal()] - photoReflectorData.getRawValue(pr.ordinal()));
+                    FingerCondition nextCondition;
 
-                        switch (pr) {
-                            case PR_0:
-                                handData.thumb = nextCondition;
-                                break;
-                            case PR_1:
-                                handData.index = nextCondition;
-                                break;
-                            case PR_2:
-                                handData.index = nextCondition;
-                                break;
-                            case PR_3:
-                                handData.ring = nextCondition;
-                                handData.pinky = nextCondition;
-                                break;
-                            case PR_4:
-                            case PR_5:
-                            case PR_6:
-                            case PR_7:
-                                // HandClose時はこれらのPhoto-Reflectorの動作はハンドリングしない
-                                break;
-                        }
+                    if ((data.mPRAveArray[pr.ordinal()] < oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue < (data.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        nextCondition = FingerCondition.HardCurve;
+                    } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] - diffSensorValueInterCalibration / 3))) {
+                        nextCondition = FingerCondition.HardCurve;
+                    } else {
+                        nextCondition = diffSensorValue > (diffSensorValueInterCalibration * 2 / 3) ? FingerCondition.Straight : FingerCondition.SoftCurve;
+                    }
+
+                    switch (pr) {
+                        case PR_0:
+                            handData.thumb = nextCondition;
+                            break;
+                        case PR_1:
+                            handData.index = nextCondition;
+                            break;
+                        case PR_2:
+                            handData.index = nextCondition;
+                            break;
+                        case PR_3:
+                            handData.ring = nextCondition;
+                            handData.pinky = nextCondition;
+                            break;
+                        case PR_4:
+                        case PR_5:
+                        case PR_6:
+                        case PR_7:
+                            // HandClose時はこれらのPhoto-Reflectorの動作はハンドリングしない
+                            break;
                     }
                 }
                 break;
             case LeftArm:
-                for (Map.Entry<Integer, Integer> entry : overThresholdPRPositionDiffMap.entrySet()) {
-                    UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[entry.getKey()];
-
+                for (UhAccessHelper.PhotoReflector pr : UhAccessHelper.PhotoReflector.values()) {
                     if (UhAccessHelper.isEnableDebug()) {
-                        LogUtil.d(TAG, pr.name() + ": diff = " + entry.getValue());
+                        LogUtil.d(TAG, pr.name() + ": diff = " + overThresholdPRPositionDiffMap.get(pr.ordinal()));
                     }
-                    int value = entry.getValue();
-                    if (value > mDetectThreshold) {
-                        FingerCondition nextCondition = value > (mDetectThreshold * CHANGE_DETECT_RATE) ? FingerCondition.Straight : FingerCondition.SoftCurve;
+                    int currentPrValue = photoReflectorData.getRawValue(pr.ordinal());
+                    int diffSensorValueInterCalibration = Math.abs(data.mPRAveArray[pr.ordinal()] - oppositeCalibrationData.mPRAveArray[pr.ordinal()]);
+                    int diffSensorValue = Math.abs(data.mPRAveArray[pr.ordinal()] - photoReflectorData.getRawValue(pr.ordinal()));
+                    FingerCondition nextCondition;
 
-                        switch (pr) {
-                            case PR_0:
-                                handData.ring = nextCondition;
-                                handData.pinky = nextCondition;
-                                break;
-                            case PR_1:
-                                handData.index = nextCondition;
-                                break;
-                            case PR_2:
-                                handData.index = nextCondition;
-                                break;
-                            case PR_3:
-                                handData.thumb = nextCondition;
-                                break;
-                            case PR_4:
-                            case PR_5:
-                            case PR_6:
-                            case PR_7:
-                                // HandClose時はこれらのPhoto-Reflectorの動作はハンドリングしない
-                                break;
-                        }
+                    if ((data.mPRAveArray[pr.ordinal()] < oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue < (data.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        nextCondition = FingerCondition.HardCurve;
+                    } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] - diffSensorValueInterCalibration / 3))) {
+                        nextCondition = FingerCondition.HardCurve;
+                    } else {
+                        nextCondition = diffSensorValue > (diffSensorValueInterCalibration * 2 / 3) ? FingerCondition.Straight : FingerCondition.SoftCurve;
+                    }
+
+                    switch (pr) {
+                        case PR_0:
+                            handData.ring = nextCondition;
+                            handData.pinky = nextCondition;
+                            break;
+                        case PR_1:
+                            handData.index = nextCondition;
+                            break;
+                        case PR_2:
+                            handData.index = nextCondition;
+                            break;
+                        case PR_3:
+                            handData.thumb = nextCondition;
+                            break;
+                        case PR_4:
+                        case PR_5:
+                        case PR_6:
+                        case PR_7:
+                            // HandClose時はこれらのPhoto-Reflectorの動作はハンドリングしない
+                            break;
                     }
                 }
                 break;
@@ -292,7 +320,7 @@ public class UhGestureDetector {
         return handData;
     }
 
-    private HandData detectGestureBaseOnPickObject(PhotoReflectorData photoReflectorData, CalibrationData data) {
+    private HandData detectGestureBaseOnPickObject(PhotoReflectorData photoReflectorData, CalibrationData data, CalibrationData oppositeCalibrationData) {
         if (UhAccessHelper.isEnableDebug()) {
             LogUtil.d(TAG, this.getClass().getSimpleName() + ".detectGestureBaseOnPickObject");
         }
@@ -302,34 +330,43 @@ public class UhGestureDetector {
 
         switch (mWearDevice) {
             case RightArm:
-                for (Map.Entry<Integer, Integer> entry : overThresholdPRPositionDiffMap.entrySet()) {
-                    UhAccessHelper.PhotoReflector pr = UhAccessHelper.PhotoReflector.values()[entry.getKey()];
-
+                for (UhAccessHelper.PhotoReflector pr : UhAccessHelper.PhotoReflector.values()) {
                     if (UhAccessHelper.isEnableDebug()) {
-                        LogUtil.d(TAG, pr.name() + ": diff = " + entry.getValue());
+                        LogUtil.d(TAG, pr.name() + ": diff = " + overThresholdPRPositionDiffMap.get(pr.ordinal()));
                     }
-                    if (entry.getValue() > mDetectThreshold) {
-                        switch (pr) {
-                            case PR_0:
-                                handData.thumb = FingerCondition.SoftCurve;
-                                break;
-                            case PR_1:
-                                handData.index = FingerCondition.SoftCurve;
-                                break;
-                            case PR_2:
-                                handData.index = FingerCondition.SoftCurve;
-                                break;
-                            case PR_3:
-                                handData.ring = FingerCondition.SoftCurve;
-                                handData.pinky = FingerCondition.SoftCurve;
-                                break;
-                            case PR_4:
-                            case PR_5:
-                            case PR_6:
-                            case PR_7:
-                                // PickObject時はこれらのPhoto-Reflectorの動作はハンドリングしない
-                                break;
-                        }
+                    int currentPrValue = photoReflectorData.getRawValue(pr.ordinal());
+                    int diffSensorValueInterCalibration = Math.abs(data.mPRAveArray[pr.ordinal()] - oppositeCalibrationData.mPRAveArray[pr.ordinal()]);
+                    int diffSensorValue = Math.abs(data.mPRAveArray[pr.ordinal()] - photoReflectorData.getRawValue(pr.ordinal()));
+                    FingerCondition nextCondition;
+
+                    if ((data.mPRAveArray[pr.ordinal()] < oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue < (data.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        nextCondition = FingerCondition.SoftCurve;
+                    } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] - diffSensorValueInterCalibration / 3))) {
+                        nextCondition = FingerCondition.SoftCurve;
+                    } else {
+                        nextCondition = diffSensorValue > (diffSensorValueInterCalibration * 2 / 3) ? FingerCondition.Straight : FingerCondition.SoftCurve;
+                    }
+
+                    switch (pr) {
+                        case PR_0:
+                            handData.thumb = nextCondition;
+                            break;
+                        case PR_1:
+                            handData.index = nextCondition;
+                            break;
+                        case PR_2:
+                            handData.index = nextCondition;
+                            break;
+                        case PR_3:
+                            handData.ring = nextCondition;
+                            handData.pinky = nextCondition;
+                            break;
+                        case PR_4:
+                        case PR_5:
+                        case PR_6:
+                        case PR_7:
+                            // PickObject時はこれらのPhoto-Reflectorの動作はハンドリングしない
+                            break;
                     }
                 }
                 break;
@@ -349,12 +386,46 @@ public class UhGestureDetector {
         return overThresholdIndexDiffMap;
     }
 
+    private CalibrationData getOppositeCalibrationData(CalibrationCondition baseCalibrationCondition) {
+        CalibrationData ret = null;
+        CalibrationCondition.HandStatus oppositeHandStatus = null;
+
+        switch (baseCalibrationCondition.handStatus) {
+            case HandOpen:
+                oppositeHandStatus = CalibrationCondition.HandStatus.HandClose;
+                break;
+            case HandClose:
+            case PickObject:
+                oppositeHandStatus = CalibrationCondition.HandStatus.HandOpen;
+                break;
+        }
+
+        if (oppositeHandStatus != null) {
+            HashMap<CalibrationCondition, CalibrationData> calibrationDataMap = mUhAccessHelper.getCalibrationDataMap();
+            CalibrationCondition[] keyArray = calibrationDataMap.keySet().toArray(new CalibrationCondition[0]);
+            CalibrationData[] valueArray = calibrationDataMap.values().toArray(new CalibrationData[0]);
+            int diffDeviceAngleDegree = Integer.MAX_VALUE;
+
+            // deviceの角度が一致するものまたは、それに最も近い角度のものを使用する
+            for (int i = 0, size = keyArray.length; i < size; i++) {
+                if (keyArray[i].handStatus == oppositeHandStatus) {
+                    if (diffDeviceAngleDegree > Math.abs(baseCalibrationCondition.deviceAngleDegree - keyArray[i].deviceAngleDegree)) {
+                        ret = valueArray[i];
+                    }
+                }
+            }
+        }
+
+        return ret;
+    }
+
     private class GestureDetector implements UhAccessHelper.OnSensorPollingListener {
         private boolean mListening = false;
 
         public void startGestureListening() {
             if (!mListening) {
                 mListening = true;
+                mUhAccessHelper.setPollingRatePerSecond(DEFAULT_CALIBRATE_RATE_PER_SECOND);
                 mUhAccessHelper.startPollingSensor(this, UhAccessHelper.POLLING_PHOTO_REFLECTOR);
             }
         }
@@ -409,18 +480,23 @@ public class UhGestureDetector {
                         if (minDiffSizeIndex < valueArray.length) {
                             CalibrationCondition calibrationCondition = keyArray[minDiffSizeIndex];
                             CalibrationData calibrationData = valueArray[minDiffSizeIndex];
+                            CalibrationData oppositeCalibrationData = getOppositeCalibrationData(calibrationCondition);
                             HandData handData = null;
+
+                            if (UhAccessHelper.isEnableDebug()) {
+                                LogUtil.d(TAG, "InputData for detect: Photo-Reflector: " + photoReflectorData + ", Near calibration data: " + calibrationData + ", Far calibration data: " + oppositeCalibrationData);
+                            }
 
                             // 見つかったCalibrationの状態をベースにして、閾値を超えるPhoto-Reflectorから状態を推測する
                             switch (calibrationCondition.handStatus) {
                                 case HandClose:
-                                    handData = detectGestureBaseOnHandClose(photoReflectorData, calibrationData);
+                                    handData = detectGestureBaseOnHandClose(photoReflectorData, calibrationData, oppositeCalibrationData);
                                     break;
                                 case HandOpen:
-                                    handData = detectGestureBaseOnHandOpen(photoReflectorData, calibrationData);
+                                    handData = detectGestureBaseOnHandOpen(photoReflectorData, calibrationData, oppositeCalibrationData);
                                     break;
                                 case PickObject:
-                                    handData = detectGestureBaseOnPickObject(photoReflectorData, calibrationData);
+                                    handData = detectGestureBaseOnPickObject(photoReflectorData, calibrationData, oppositeCalibrationData);
                                     break;
                             }
 

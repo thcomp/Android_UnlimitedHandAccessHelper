@@ -15,10 +15,16 @@ public abstract class AbstractTestFragment extends Fragment {
 
     abstract int getLayoutResId();
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mUHAccessHelper = ((UHAccessHelperProvider)getActivity()).getUhAccessHelper();
+    }
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        mUHAccessHelper = ((UHAccessHelperProvider)getActivity()).getUhAccessHelper();
+        super.onCreateView(inflater, container, savedInstanceState);
         mRootView = inflater.inflate(getLayoutResId(), container, false);
         return mRootView;
     }
