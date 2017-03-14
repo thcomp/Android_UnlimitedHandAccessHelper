@@ -19,7 +19,10 @@ import jp.co.thcomp.unlimited_hand.R;
 import jp.co.thcomp.unlimitedhand.CalibrationCondition;
 import jp.co.thcomp.unlimitedhand.CalibrationStatus;
 import jp.co.thcomp.unlimitedhand.OnCalibrationStatusChangeListener;
+import jp.co.thcomp.unlimitedhand.UhAccessHelper;
 import jp.co.thcomp.unlimitedhand.UhGestureDetector;
+import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
+import jp.co.thcomp.unlimitedhand.data.AngleData;
 import jp.co.thcomp.util.PreferenceUtil;
 import jp.co.thcomp.util.ThreadUtil;
 import jp.co.thcomp.util.ToastUtil;
@@ -49,49 +52,57 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
 
         mUhGestureDetector = new UhGestureDetector(getActivity(), mUHAccessHelper, UhGestureDetector.WearDevice.RightArm);
         mUhGestureDetector.setGestureListener(mGestureListener);
-        new CalibrationTask(new CalibrationCondition(0, CalibrationCondition.HandStatus.HandOpen)) {
+        new DetectCalibrationAngleTask(){
             @Override
-            protected void onPostExecute(Void o) {
-                super.onPostExecute(o);
+            protected void onPostExecute(Void aVoid) {
+                super.onPostExecute(aVoid);
+                final int calibrationAngle = this.mCount > 0 ? this.mCalibrationAngleAve / this.mCount : 0;
 
-                Activity activity = getActivity();
-                if ((activity != null) && !activity.isFinishing()) {
-                    if (mResult != CalibrationStatus.CalibrateSuccess) {
-                        ToastUtil.showToast(getActivity(), "fail to calibrate: " + CalibrationCondition.HandStatus.HandOpen.name(), Toast.LENGTH_SHORT);
-                    }
+                new CalibrationTask(new CalibrationCondition(calibrationAngle, CalibrationCondition.HandStatus.HandOpen)) {
+                    @Override
+                    protected void onPostExecute(Void o) {
+                        super.onPostExecute(o);
 
-                    new CalibrationTask(new CalibrationCondition(0, CalibrationCondition.HandStatus.HandClose)) {
-                        @Override
-                        protected void onPostExecute(Void o) {
-                            super.onPostExecute(o);
+                        Activity activity = getActivity();
+                        if ((activity != null) && !activity.isFinishing()) {
+                            if (mResult != CalibrationStatus.CalibrateSuccess) {
+                                ToastUtil.showToast(getActivity(), "fail to calibrate: " + CalibrationCondition.HandStatus.HandOpen.name(), Toast.LENGTH_SHORT);
+                            }
 
-                            Activity activity = getActivity();
-                            if ((activity != null) && !activity.isFinishing()) {
-                                if (mResult != CalibrationStatus.CalibrateSuccess) {
-                                    ToastUtil.showToast(getActivity(), "fail to calibrate: " + CalibrationCondition.HandStatus.HandClose.name(), Toast.LENGTH_SHORT);
-                                }
+                            new CalibrationTask(new CalibrationCondition(calibrationAngle, CalibrationCondition.HandStatus.HandClose)) {
+                                @Override
+                                protected void onPostExecute(Void o) {
+                                    super.onPostExecute(o);
 
-//                                new CalibrationTask(new CalibrationCondition(0, CalibrationCondition.HandStatus.PickObject)) {
-//                                    @Override
-//                                    protected void onPostExecute(Void o) {
-//                                        super.onPostExecute(o);
+                                    Activity activity = getActivity();
+                                    if ((activity != null) && !activity.isFinishing()) {
+                                        if (mResult != CalibrationStatus.CalibrateSuccess) {
+                                            ToastUtil.showToast(getActivity(), "fail to calibrate: " + CalibrationCondition.HandStatus.HandClose.name(), Toast.LENGTH_SHORT);
+                                        }
+
+//                                        new CalibrationTask(new CalibrationCondition(calibrationAngle, CalibrationCondition.HandStatus.PickObject)) {
+//                                            @Override
+//                                            protected void onPostExecute(Void o) {
+//                                                super.onPostExecute(o);
 //
-//                                        Activity activity = getActivity();
-//                                        if ((activity != null) && !activity.isFinishing()) {
-//                                            if (mResult != CalibrationStatus.CalibrateSuccess) {
-//                                                ToastUtil.showToast(getActivity(), "fail to calibrate: " + CalibrationCondition.HandStatus.PickObject.name(), Toast.LENGTH_SHORT);
+//                                                Activity activity = getActivity();
+//                                                if ((activity != null) && !activity.isFinishing()) {
+//                                                    if (mResult != CalibrationStatus.CalibrateSuccess) {
+//                                                        ToastUtil.showToast(getActivity(), "fail to calibrate: " + CalibrationCondition.HandStatus.PickObject.name(), Toast.LENGTH_SHORT);
+//                                                    }
+//
+//                                                    mUhGestureDetector.startGestureListening();
+//                                                }
 //                                            }
 //
-//                                            mUhGestureDetector.startGestureListening();
-//                                        }
-//                                    }
-//
-//                                }.execute();
-                                mUhGestureDetector.startGestureListening();
-                            }
+//                                        }.execute();
+                                        mUhGestureDetector.startGestureListening();
+                                    }
+                                }
+                            }.execute();
                         }
-                    }.execute();
-                }
+                    }
+                }.execute();
             }
         }.execute();
     }
@@ -169,6 +180,70 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
         }
     };
 
+    private class DetectCalibrationAngleTask extends AsyncTask<Void, Void, Void> implements UhAccessHelper.OnSensorPollingListener {
+        protected ProgressDialog mDetectingAngleDialog = null;
+        protected ThreadUtil.OnetimeSemaphore mSemaphore = new ThreadUtil.OnetimeSemaphore();
+        protected int mCalibrationAngleAve = 0;
+        protected int mCount = 0;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage("Please fix your arm with Unlimited Hand, you want to correct and touch \"START\" button");
+            builder.setPositiveButton("Start", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    mDetectingAngleDialog = new ProgressDialog(getActivity());
+                    mDetectingAngleDialog.setMessage("Detecting calibration device angle");
+                    mDetectingAngleDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                    mDetectingAngleDialog.setCanceledOnTouchOutside(false);
+                    mDetectingAngleDialog.setCancelable(true);
+                    mDetectingAngleDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                        @Override
+                        public void onCancel(DialogInterface dialog) {
+                            mUHAccessHelper.stopPollingSensor(DetectCalibrationAngleTask.this);
+                            mSemaphore.stop();
+                        }
+                    });
+                    mDetectingAngleDialog.show();
+
+                    mUHAccessHelper.startPollingSensor(DetectCalibrationAngleTask.this, UhAccessHelper.POLLING_ANGLE);
+                }
+            });
+            builder.show();
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            mSemaphore.start();
+            mUHAccessHelper.stopPollingSensor(this);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+        }
+
+        @Override
+        public void onPollSensor(AbstractSensorData[] sensorDataArray) {
+            if (sensorDataArray != null && sensorDataArray.length > 0) {
+                if (sensorDataArray[0] instanceof AngleData) {
+                    AngleData angleData = (AngleData) sensorDataArray[0];
+                    mCalibrationAngleAve += angleData.getRawValue(0);
+                    mCount++;
+
+                    if (mCount >= 10) {
+                        mDetectingAngleDialog.dismiss();
+                        mSemaphore.stop();
+                    }
+                }
+            }
+        }
+    }
+
     private class CalibrationTask extends AsyncTask<Void, Void, Void> implements OnCalibrationStatusChangeListener {
         protected CalibrationCondition mCondition;
         protected CalibrationStatus mResult = CalibrationStatus.Init;
@@ -190,13 +265,13 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
             switch (mCondition.handStatus) {
                 case HandOpen:
-                    builder.setMessage("Please open your hand and touch \"Start\" button");
+                    builder.setMessage("Please open your hand and touch \"START\" button");
                     break;
                 case HandClose:
-                    builder.setMessage("Please close your hand and touch \"Start\" button");
+                    builder.setMessage("Please close your hand and touch \"START\" button");
                     break;
                 case PickObject:
-                    builder.setMessage("Please form your hand to pick and touch \"Start\" button");
+                    builder.setMessage("Please form your hand to pick and touch \"START\" button");
                     break;
             }
             builder.setPositiveButton("Start", new DialogInterface.OnClickListener() {

@@ -4,7 +4,6 @@ import android.content.Context;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
 
 import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
 import jp.co.thcomp.unlimitedhand.data.CalibrationData;
@@ -151,6 +150,12 @@ public class UhGestureDetector {
                         nextCondition = FingerCondition.Straight;
                     } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] - diffSensorValueInterCalibration / 3))) {
                         nextCondition = FingerCondition.Straight;
+                    } else if ((data.mPRAveArray[pr.ordinal()] < oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (oppositeCalibrationData.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        // 大幅超過しているものは無視する
+                        continue;
+                    } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        // 大幅超過しているものは無視する
+                        continue;
                     } else {
                         nextCondition = diffSensorValue > (diffSensorValueInterCalibration * 2 / 3) ? FingerCondition.HardCurve : FingerCondition.SoftCurve;
                     }
@@ -192,6 +197,12 @@ public class UhGestureDetector {
                         nextCondition = FingerCondition.Straight;
                     } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] - diffSensorValueInterCalibration / 3))) {
                         nextCondition = FingerCondition.Straight;
+                    } else if ((data.mPRAveArray[pr.ordinal()] < oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (oppositeCalibrationData.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        // 大幅超過しているものは無視する
+                        continue;
+                    } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        // 大幅超過しているものは無視する
+                        continue;
                     } else {
                         nextCondition = diffSensorValue > (diffSensorValueInterCalibration * 2 / 3) ? FingerCondition.HardCurve : FingerCondition.SoftCurve;
                     }
@@ -247,6 +258,12 @@ public class UhGestureDetector {
                         nextCondition = FingerCondition.HardCurve;
                     } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] - diffSensorValueInterCalibration / 3))) {
                         nextCondition = FingerCondition.HardCurve;
+                    } else if ((data.mPRAveArray[pr.ordinal()] < oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (oppositeCalibrationData.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        // 大幅超過しているものは無視する
+                        continue;
+                    } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        // 大幅超過しているものは無視する
+                        continue;
                     } else {
                         nextCondition = diffSensorValue > (diffSensorValueInterCalibration * 2 / 3) ? FingerCondition.Straight : FingerCondition.SoftCurve;
                     }
@@ -288,6 +305,12 @@ public class UhGestureDetector {
                         nextCondition = FingerCondition.HardCurve;
                     } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] - diffSensorValueInterCalibration / 3))) {
                         nextCondition = FingerCondition.HardCurve;
+                    } else if ((data.mPRAveArray[pr.ordinal()] < oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (oppositeCalibrationData.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        // 大幅超過しているものは無視する
+                        continue;
+                    } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        // 大幅超過しているものは無視する
+                        continue;
                     } else {
                         nextCondition = diffSensorValue > (diffSensorValueInterCalibration * 2 / 3) ? FingerCondition.Straight : FingerCondition.SoftCurve;
                     }
@@ -343,6 +366,12 @@ public class UhGestureDetector {
                         nextCondition = FingerCondition.SoftCurve;
                     } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] - diffSensorValueInterCalibration / 3))) {
                         nextCondition = FingerCondition.SoftCurve;
+                    } else if ((data.mPRAveArray[pr.ordinal()] < oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (oppositeCalibrationData.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        // 大幅超過しているものは無視する
+                        continue;
+                    } else if ((data.mPRAveArray[pr.ordinal()] > oppositeCalibrationData.mPRAveArray[pr.ordinal()]) && (currentPrValue > (data.mPRAveArray[pr.ordinal()] + diffSensorValueInterCalibration / 3))) {
+                        // 大幅超過しているものは無視する
+                        continue;
                     } else {
                         nextCondition = diffSensorValue > (diffSensorValueInterCalibration * 2 / 3) ? FingerCondition.Straight : FingerCondition.SoftCurve;
                     }
