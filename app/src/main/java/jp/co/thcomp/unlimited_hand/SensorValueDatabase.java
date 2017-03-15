@@ -94,12 +94,6 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
             for (int i = 0; i < dataSensorNum; i++) {
                 queryBuilder.append(String.format(", %s real", getSensorValueColumnName(i)));
             }
-
-            if (isSupportCalibration) {
-                for (int i = 0; i < dataSensorNum; i++) {
-                    queryBuilder.append(String.format(", %s real", getCalibratedSensorValueColumnName(i)));
-                }
-            }
         }
 
         queryBuilder.append(");");
