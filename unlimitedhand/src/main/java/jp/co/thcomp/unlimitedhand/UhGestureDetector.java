@@ -69,6 +69,17 @@ public class UhGestureDetector {
             result = 31 * result + (pinky != null ? pinky.hashCode() : 0);
             return result;
         }
+
+        @Override
+        public String toString() {
+            return "HandData{" +
+                    "thumb=" + (thumb != null ? thumb.name() : "null") +
+                    ",index=" + (index != null ? index.name() : "null") +
+                    ", middle=" + (middle != null ? middle.name() : "null") +
+                    ", ring=" + (ring != null ? ring.name() : "null") +
+                    ", pinky=" + (pinky != null ? pinky.name() : "null") +
+                    '}';
+        }
     }
 
     public static final int DEFAULT_CALIBRATE_INTERVAL_MS = 5 * 1000;
@@ -143,9 +154,6 @@ public class UhGestureDetector {
         PRValuePhase[] allPrValuePhaseArray = new PRValuePhase[UhAccessHelper.PhotoReflector.values().length];
 
         for (UhAccessHelper.PhotoReflector pr : UhAccessHelper.PhotoReflector.values()) {
-            if (UhAccessHelper.isEnableDebug()) {
-                LogUtil.d(TAG, pr.name() + ": diff = " + overThresholdPRPositionDiffMap.get(pr.ordinal()));
-            }
             int currentPrValue = photoReflectorData.getRawValue(pr.ordinal());
             int diffSensorValueInterCalibration = Math.abs(data.mPRAveArray[pr.ordinal()] - oppositeCalibrationData.mPRAveArray[pr.ordinal()]);
             int diffSensorValue = Math.abs(data.mPRAveArray[pr.ordinal()] - currentPrValue);
@@ -161,15 +169,19 @@ public class UhGestureDetector {
             } else {
                 allPrValuePhaseArray[pr.ordinal()] = diffSensorValue > (diffSensorValueInterCalibration * 2 / 3) ? PRValuePhase.NearOpposite : PRValuePhase.Middle;
             }
+            if (UhAccessHelper.isEnableDebug()) {
+                LogUtil.d(TAG, pr.name() + ": diff = " + overThresholdPRPositionDiffMap.get(pr.ordinal()) + "(" + Math.abs(data.mPRAveArray[pr.ordinal()] - oppositeCalibrationData.mPRAveArray[pr.ordinal()]) + "), PR Phase = " + allPrValuePhaseArray[pr.ordinal()].name());
+            }
         }
 
         switch (mWearDevice) {
             case RightArm: {
                 // PR_0(thumbとindexの間)
-                switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_0.ordinal()]){
+                allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_0.ordinal()] = changePRValuePhase(null, allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_0.ordinal()], allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()]);
+                switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_0.ordinal()]) {
                     case NearBase:
-                        handData.thumb = arrayFingerCondition[PRValuePhase.NearBase.ordinal()];
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()]){
+                        handData.thumb = arrayFingerCondition[allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_0.ordinal()].ordinal()];
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()]) {
                             case NearBase:
                                 handData.index = arrayFingerCondition[PRValuePhase.NearBase.ordinal()];
                                 break;
@@ -182,8 +194,8 @@ public class UhGestureDetector {
                         }
                         break;
                     case Middle:
-                        handData.thumb = arrayFingerCondition[PRValuePhase.Middle.ordinal()];
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()]){
+                        handData.thumb = arrayFingerCondition[allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_0.ordinal()].ordinal()];
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()]) {
                             case NearBase:
                                 handData.index = arrayFingerCondition[PRValuePhase.NearBase.ordinal()];
                                 break;
@@ -196,8 +208,8 @@ public class UhGestureDetector {
                         }
                         break;
                     case NearOpposite:
-                        handData.thumb = arrayFingerCondition[PRValuePhase.NearOpposite.ordinal()];
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()]){
+                        handData.thumb = arrayFingerCondition[allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_0.ordinal()].ordinal()];
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()]) {
                             case NearBase:
                                 handData.index = arrayFingerCondition[PRValuePhase.NearBase.ordinal()];
                                 break;
@@ -212,9 +224,10 @@ public class UhGestureDetector {
                 }
 
                 // PR_1(indexとmiddleの間)
-                switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()]){
+                allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()] = changePRValuePhase(allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_0.ordinal()], allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()], allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()]);
+                switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()]) {
                     case NearBase:
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()]){
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()]) {
                             case NearBase:
                                 handData.middle = arrayFingerCondition[PRValuePhase.NearBase.ordinal()];
                                 break;
@@ -227,7 +240,7 @@ public class UhGestureDetector {
                         }
                         break;
                     case Middle:
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()]){
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()]) {
                             case NearBase:
                             case Middle:
                                 handData.middle = arrayFingerCondition[PRValuePhase.Middle.ordinal()];
@@ -238,7 +251,7 @@ public class UhGestureDetector {
                         }
                         break;
                     case NearOpposite:
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()]){
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()]) {
                             case NearBase:
                                 handData.middle = arrayFingerCondition[PRValuePhase.Middle.ordinal()];
                                 break;
@@ -251,9 +264,10 @@ public class UhGestureDetector {
                 }
 
                 // PR_2(middleとringの間)
-                switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()]){
+                allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()] = changePRValuePhase(allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_1.ordinal()], allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()], allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()]);
+                switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()]) {
                     case NearBase:
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()]){
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()]) {
                             case NearBase:
                                 handData.ring = arrayFingerCondition[PRValuePhase.NearBase.ordinal()];
                                 break;
@@ -266,7 +280,7 @@ public class UhGestureDetector {
                         }
                         break;
                     case Middle:
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()]){
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()]) {
                             case NearBase:
                             case Middle:
                                 handData.ring = arrayFingerCondition[PRValuePhase.Middle.ordinal()];
@@ -277,7 +291,7 @@ public class UhGestureDetector {
                         }
                         break;
                     case NearOpposite:
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()]){
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()]) {
                             case NearBase:
                                 handData.ring = arrayFingerCondition[PRValuePhase.Middle.ordinal()];
                                 break;
@@ -290,10 +304,11 @@ public class UhGestureDetector {
                 }
 
                 // PR_3(ringとpinkyの間)
-                switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()]){
+                allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()] = changePRValuePhase(allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_2.ordinal()], allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()], null);
+                switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()]) {
                     case NearBase:
-                        handData.pinky = FingerCondition.Straight;
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_4.ordinal()]){
+                        handData.pinky = arrayFingerCondition[allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()].ordinal()];
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_4.ordinal()]) {
                             case NearBase:
                                 handData.ring = arrayFingerCondition[PRValuePhase.NearBase.ordinal()];
                                 break;
@@ -306,8 +321,8 @@ public class UhGestureDetector {
                         }
                         break;
                     case Middle:
-                        handData.pinky = FingerCondition.SoftCurve;
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_4.ordinal()]){
+                        handData.pinky = arrayFingerCondition[allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()].ordinal()];
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_4.ordinal()]) {
                             case NearBase:
                             case Middle:
                                 handData.ring = arrayFingerCondition[PRValuePhase.Middle.ordinal()];
@@ -318,8 +333,8 @@ public class UhGestureDetector {
                         }
                         break;
                     case NearOpposite:
-                        handData.pinky = FingerCondition.HardCurve;
-                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_4.ordinal()]){
+                        handData.pinky = arrayFingerCondition[allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_3.ordinal()].ordinal()];
+                        switch (allPrValuePhaseArray[UhAccessHelper.PhotoReflector.PR_4.ordinal()]) {
                             case NearBase:
                                 handData.ring = arrayFingerCondition[PRValuePhase.Middle.ordinal()];
                                 break;
@@ -336,7 +351,38 @@ public class UhGestureDetector {
                 break;
         }
 
+        if (UhAccessHelper.isEnableDebug()) {
+            LogUtil.d(TAG, "handData = " + handData);
+        }
+
         return handData;
+    }
+
+    private PRValuePhase changePRValuePhase(PRValuePhase prevPRPhase, PRValuePhase targetPRPhase, PRValuePhase nextPRPhase) {
+        PRValuePhase ret = targetPRPhase;
+
+        if ((prevPRPhase != null) && (nextPRPhase != null)) {
+            switch (targetPRPhase) {
+                case NearBase:
+                    if (prevPRPhase == PRValuePhase.NearOpposite && nextPRPhase == PRValuePhase.NearOpposite) {
+                        ret = PRValuePhase.Middle;
+                    }
+                    break;
+                case Middle:
+                    break;
+                case NearOpposite:
+                    if (prevPRPhase == PRValuePhase.NearBase && nextPRPhase == PRValuePhase.NearBase) {
+                        ret = PRValuePhase.Middle;
+                    }
+                    break;
+            }
+        } else if (prevPRPhase != null) {
+
+        } else if (nextPRPhase != null) {
+
+        }
+
+        return ret;
     }
 
     private HashMap<Integer, Integer> getOverThresholdPRPositionDiffMap(PhotoReflectorData photoReflectorData, CalibrationData calibrationData) {
@@ -447,26 +493,18 @@ public class UhGestureDetector {
                             CalibrationData oppositeCalibrationData = getOppositeCalibrationData(calibrationCondition);
                             HandData handData = null;
 
+                            // 見つかったCalibrationの状態をベースにして、閾値を超えるPhoto-Reflectorから状態を推測する
                             if (UhAccessHelper.isEnableDebug()) {
                                 LogUtil.d(TAG, "InputData for detect: Photo-Reflector: " + photoReflectorData + ", Near calibration data: " + calibrationData + ", Far calibration data: " + oppositeCalibrationData);
+                                LogUtil.d(TAG, this.getClass().getSimpleName() + ".detectGesture(" + calibrationCondition.handStatus.name());
                             }
-
-                            // 見つかったCalibrationの状態をベースにして、閾値を超えるPhoto-Reflectorから状態を推測する
                             switch (calibrationCondition.handStatus) {
                                 case HandClose:
-                                    if (UhAccessHelper.isEnableDebug()) {
-                                        LogUtil.d(TAG, this.getClass().getSimpleName() + ".detectGesture(HandClose)");
-                                    }
+                                case PickObject:
                                     handData = detectGesture(photoReflectorData, calibrationData, oppositeCalibrationData, new FingerCondition[]{FingerCondition.HardCurve, FingerCondition.SoftCurve, FingerCondition.Straight});
                                     break;
                                 case HandOpen:
-                                    if (UhAccessHelper.isEnableDebug()) {
-                                        LogUtil.d(TAG, this.getClass().getSimpleName() + ".detectGesture(HandOpen)");
-                                    }
                                     handData = detectGesture(photoReflectorData, calibrationData, oppositeCalibrationData, new FingerCondition[]{FingerCondition.Straight, FingerCondition.SoftCurve, FingerCondition.HardCurve});
-                                    break;
-                                case PickObject:
-                                    //handData = detectGestureBaseOnPickObject(photoReflectorData, calibrationData, oppositeCalibrationData);
                                     break;
                             }
 
