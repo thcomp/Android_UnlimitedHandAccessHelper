@@ -5,67 +5,179 @@
             tools:context="jp.co.thcomp.unlimited_hand.fragment.TestGestureDetectorFragment">
 
     <LinearLayout
+        android:id="@+id/llPrepareInformationArea"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="1.0"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etGestureDetectThreshold"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:layout_weight="1.0"
+                android:hint="Please input gesture detect threshold"/>
+
+            <Button
+                android:id="@+id/btnUpdate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="update" />
+        </LinearLayout>
+        <View
+            android:layout_width="1px"
+            android:layout_height="8dp" />
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:orientation="vertical">
+        android:layout_below="@id/llPrepareInformationArea"
+        android:layout_centerHorizontal="true"
+        android:orientation="horizontal">
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
-            <!-- pinky -->
-            <View
-                android:id="@+id/vPinky"
-                android:layout_width="@dimen/finger_width"
-                android:layout_height="@dimen/finger_joint_height"
-                android:background="@android:color/white" />
-            <View
-                android:layout_width="@dimen/finger_interval"
-                android:layout_height="@dimen/finger_joint_height"
-                android:visibility="invisible" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-            <!-- ring -->
-            <View
-                android:id="@+id/vRing"
-                android:layout_width="@dimen/finger_width"
-                android:layout_height="@dimen/finger_joint_height"
-                android:background="@android:color/white" />
-            <View
-                android:layout_width="@dimen/finger_interval"
-                android:layout_height="@dimen/finger_joint_height"
-                android:visibility="invisible" />
+                <!-- pinky -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:orientation="vertical">
+                    <TextView
+                        android:id="@+id/vPinky2"
+                        android:layout_width="@dimen/finger_width"
+                        android:layout_height="@dimen/pinky_finger_joint_height"
+                        android:background="@android:color/holo_orange_dark" />
+                    <TextView
+                        android:id="@+id/vPinky1"
+                        android:layout_width="@dimen/finger_width"
+                        android:layout_height="@dimen/pinky_finger_joint_height"
+                        android:gravity="center"
+                        android:text="P"
+                        android:background="@android:color/holo_orange_dark" />
+                </LinearLayout>
+                <View
+                    android:layout_width="@dimen/finger_interval"
+                    android:layout_height="@dimen/pinky_finger_joint_height"
+                    android:visibility="invisible" />
 
-            <!-- middle -->
-            <View
-                android:id="@+id/vMiddle"
-                android:layout_width="@dimen/finger_width"
-                android:layout_height="@dimen/finger_joint_height"
-                android:background="@android:color/white" />
-            <View
-                android:layout_width="@dimen/finger_interval"
-                android:layout_height="@dimen/finger_joint_height"
-                android:visibility="invisible" />
+                <!-- ring -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:orientation="vertical">
+                    <TextView
+                        android:id="@+id/vRing2"
+                        android:layout_width="@dimen/finger_width"
+                        android:layout_height="@dimen/ring_finger_joint_height"
+                        android:background="@android:color/holo_orange_dark" />
+                    <TextView
+                        android:id="@+id/vRing1"
+                        android:layout_width="@dimen/finger_width"
+                        android:layout_height="@dimen/ring_finger_joint_height"
+                        android:gravity="center"
+                        android:text="R"
+                        android:background="@android:color/holo_orange_dark" />
+                </LinearLayout>
+                <View
+                    android:layout_width="@dimen/finger_interval"
+                    android:layout_height="@dimen/ring_finger_joint_height"
+                    android:visibility="invisible" />
 
-            <!-- index -->
-            <View
-                android:id="@+id/vIndex"
-                android:layout_width="@dimen/finger_width"
-                android:layout_height="@dimen/finger_joint_height"
-                android:background="@android:color/white" />
-            <View
-                android:layout_width="@dimen/finger_interval"
-                android:layout_height="@dimen/finger_joint_height"
-                android:visibility="invisible" />
+                <!-- middle -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:orientation="vertical">
+                    <TextView
+                        android:id="@+id/vMiddle2"
+                        android:layout_width="@dimen/finger_width"
+                        android:layout_height="@dimen/middle_finger_joint_height"
+                        android:background="@android:color/holo_orange_dark" />
+                    <TextView
+                        android:id="@+id/vMiddle1"
+                        android:layout_width="@dimen/finger_width"
+                        android:layout_height="@dimen/middle_finger_joint_height"
+                        android:gravity="center"
+                        android:text="M"
+                        android:background="@android:color/holo_orange_dark" />
+                </LinearLayout>
+                <View
+                    android:layout_width="@dimen/finger_interval"
+                    android:layout_height="@dimen/middle_finger_joint_height"
+                    android:visibility="invisible" />
 
-            <!-- thumb -->
+                <!-- index -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:orientation="vertical">
+                    <TextView
+                        android:id="@+id/vIndex2"
+                        android:layout_width="@dimen/finger_width"
+                        android:layout_height="@dimen/index_finger_joint_height"
+                        android:background="@android:color/holo_orange_dark" />
+                    <TextView
+                        android:id="@+id/vIndex1"
+                        android:layout_width="@dimen/finger_width"
+                        android:layout_height="@dimen/index_finger_joint_height"
+                        android:gravity="center"
+                        android:text="I"
+                        android:background="@android:color/holo_orange_dark" />
+                </LinearLayout>
+            </LinearLayout>
+
             <View
-                android:id="@+id/vThumb"
-                android:layout_width="@dimen/finger_width"
-                android:layout_height="@dimen/finger_joint_height"
-                android:background="@android:color/white" />
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/hand_height"
+                android:background="@android:color/holo_orange_dark" />
+
         </LinearLayout>
 
+        <View
+            android:layout_width="@dimen/finger_interval"
+            android:layout_height="@dimen/index_finger_joint_height"
+            android:background="@android:color/holo_orange_dark"
+            android:layout_gravity="bottom"
+            android:visibility="visible" />
+
+        <!-- thumb -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/vThumb2"
+                android:layout_width="@dimen/finger_width"
+                android:layout_height="@dimen/thumb_finger_joint_height"
+                android:background="@android:color/holo_orange_dark" />
+            <TextView
+                android:id="@+id/vThumb1"
+                android:layout_width="@dimen/finger_width"
+                android:layout_height="@dimen/thumb_finger_joint_height"
+                android:gravity="center"
+                android:text="T"
+                android:background="@android:color/holo_orange_dark" />
+        </LinearLayout>
     </LinearLayout>
 </RelativeLayout>

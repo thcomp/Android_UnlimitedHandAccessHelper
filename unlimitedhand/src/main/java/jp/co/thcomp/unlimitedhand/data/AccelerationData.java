@@ -29,23 +29,4 @@ public class AccelerationData extends AbstractSensorFloatData {
     public boolean isSupportCalibration() {
         return IS_SUPPORT_CALIBRATION;
     }
-
-    @Override
-    public boolean calibrate(CalibrationData calibrationData) {
-        boolean ret = super.calibrate(calibrationData);
-
-        if (ret) {
-            for (int i = 0, size = ACCELERATION_NUM; i < size; i++) {
-                if(UhAccessHelper.isEnableDebug()) {
-                    LogUtil.d(UhAccessHelper.TAG,
-                            AccelerationData.class.getSimpleName() +
-                                    ": value=" + String.valueOf(getRawValue(i) - calibrationData.mAccelGyroAveArray[i]) +
-                                    ", raw value(" + i + ")=" + getRawValue(i) + ", ave=" + calibrationData.mAccelGyroAveArray[i]);
-                }
-                calibratedChannelData[i] = String.valueOf(getRawValue(i) - calibrationData.mAccelGyroAveArray[i]);
-            }
-        }
-
-        return ret;
-    }
 }

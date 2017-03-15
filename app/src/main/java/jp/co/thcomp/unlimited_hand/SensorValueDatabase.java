@@ -94,12 +94,6 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
             for (int i = 0; i < dataSensorNum; i++) {
                 queryBuilder.append(String.format(", %s real", getSensorValueColumnName(i)));
             }
-
-            if (isSupportCalibration) {
-                for (int i = 0; i < dataSensorNum; i++) {
-                    queryBuilder.append(String.format(", %s real", getCalibratedSensorValueColumnName(i)));
-                }
-            }
         }
 
         queryBuilder.append(");");
@@ -119,19 +113,6 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
                     values.put(getSensorValueColumnName(i), (int) value);
                 } else if (value.getClass() == Float.class || value.getClass() == float.class) {
                     values.put(getSensorValueColumnName(i), (float) value);
-                }
-            }
-        }
-
-        if (data.isSupportCalibration()) {
-            for (int i = 0, size = data.getSensorNum(); i < size; i++) {
-                Object value = data.getCalibratedValue(i);
-                if (value != null) {
-                    if (value.getClass() == Integer.class || value.getClass() == int.class) {
-                        values.put(getSensorValueColumnName(i), (int) value);
-                    } else if (value.getClass() == Float.class || value.getClass() == float.class) {
-                        values.put(getSensorValueColumnName(i), (float) value);
-                    }
                 }
             }
         }
