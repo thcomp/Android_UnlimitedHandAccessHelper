@@ -18,6 +18,23 @@ public abstract class AbstractSensorData<DataType> {
         return "\\+";
     }
 
+    public AbstractSensorData() {
+    }
+
+    public AbstractSensorData(AbstractSensorData srcSensorData) {
+        if (srcSensorData == null) {
+            throw new NullPointerException("srcSensorData == null");
+        }
+
+        if (this.getClass() != srcSensorData.getClass()) {
+            throw new IllegalArgumentException("not match class");
+        }
+
+        for (int i = 0, size = channelData.length; i < size; i++) {
+            channelData[i] = new String(srcSensorData.channelData[i]);
+        }
+    }
+
     public boolean expandRawData(byte[] rawData) {
         if (UhAccessHelper.isEnableDebug()) {
             LogUtil.d(UhAccessHelper.TAG, getClass().getSimpleName() + ".expandRawData: rawData = " + Arrays.toString(rawData));

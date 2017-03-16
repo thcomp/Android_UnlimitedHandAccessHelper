@@ -24,6 +24,7 @@ import java.util.List;
 
 import jp.co.thcomp.unlimited_hand.fragment.AbstractTestFragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestBatchOutputFragment;
+import jp.co.thcomp.unlimited_hand.fragment.TestGestureDetector2Fragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestGestureDetectorFragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestInputFragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestOutputFragment;
@@ -37,7 +38,8 @@ public class MainActivity extends AppCompatActivity implements AbstractTestFragm
             new MenuItem("output", TestOutputFragment.class),
             new MenuItem("batch output", TestBatchOutputFragment.class),
             new MenuItem("input", TestInputFragment.class),
-            new MenuItem("gesture detector", TestGestureDetectorFragment.class),
+            new MenuItem("finger status", TestGestureDetectorFragment.class),
+            new MenuItem("angle status", TestGestureDetector2Fragment.class),
     };
 
     private UhAccessHelper mUHAccessHelper = null;

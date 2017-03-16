@@ -23,6 +23,7 @@ repositories {
     maven { url 'http://raw.github.com/thcomp/Android_Utility/master/repository' }
     maven { url 'http://raw.github.com/thcomp/Android_BluetoothHelper/master/repository' }
     maven { url 'http://raw.github.com/thcomp/Android_BaseActivity/master/repository' }
+    maven { url 'http://raw.github.com/thcomp/Android_OpenGLHelper/master/repository' }
 }
 
 dependencies {
@@ -31,7 +32,8 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     compile project(':unlimitedhand')
-    compile 'jp.co.thcomp:android_utility:1.0.19'
+    compile 'jp.co.thcomp:android_utility:1.0.+'
+    compile 'jp.co.thcomp:android_opengl_helper:0.0.+'
     compile 'com.android.support:appcompat-v7:25.1.0'
     compile 'com.android.support:design:25.1.0'
     compile 'com.android.support:support-v4:25.1.0'

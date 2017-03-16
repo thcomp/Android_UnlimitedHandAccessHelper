@@ -18,6 +18,7 @@ import jp.co.thcomp.unlimited_hand.Common;
 import jp.co.thcomp.unlimited_hand.R;
 import jp.co.thcomp.unlimitedhand.CalibrationCondition;
 import jp.co.thcomp.unlimitedhand.CalibrationStatus;
+import jp.co.thcomp.unlimitedhand.data.HandData;
 import jp.co.thcomp.unlimitedhand.OnCalibrationStatusChangeListener;
 import jp.co.thcomp.unlimitedhand.UhAccessHelper;
 import jp.co.thcomp.unlimitedhand.UhGestureDetector;
@@ -31,6 +32,7 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
     private static final String TAG = TestGestureDetectorFragment.class.getSimpleName();
 
     private UhGestureDetector mUhGestureDetector;
+    private boolean mAlreadyCalibration = false;
 
     public TestGestureDetectorFragment() {
         // Required empty public constructor
@@ -51,7 +53,7 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
         super.onCreate(savedInstanceState);
 
         mUhGestureDetector = new UhGestureDetector(getActivity(), mUHAccessHelper, UhGestureDetector.WearDevice.RightArm);
-        mUhGestureDetector.setGestureListener(mGestureListener);
+        mUhGestureDetector.setFingerStatusListener(mGestureListener);
         new DetectCalibrationAngleTask(){
             @Override
             protected void onPostExecute(Void aVoid) {
@@ -91,12 +93,13 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
 //                                                        ToastUtil.showToast(getActivity(), "fail to calibrate: " + CalibrationCondition.HandStatus.PickObject.name(), Toast.LENGTH_SHORT);
 //                                                    }
 //
-//                                                    mUhGestureDetector.startGestureListening();
+//                                                    mUhGestureDetector.startListening();
 //                                                }
 //                                            }
 //
 //                                        }.execute();
-                                        mUhGestureDetector.startGestureListening();
+                                        mAlreadyCalibration = true;
+                                        mUhGestureDetector.startListening();
                                     }
                                 }
                             }.execute();
@@ -131,9 +134,18 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        if(mAlreadyCalibration){
+            mUhGestureDetector.startListening();
+        }
+    }
+
+    @Override
     public void onPause() {
         super.onPause();
 
+        mUhGestureDetector.stopListening();
         EditText etGestureDetectThreshold = (EditText) mRootView.findViewById(R.id.etGestureDetectThreshold);
         try {
             PreferenceUtil.writePref(getActivity(), Common.PREF_INT_GESTURE_DETECT_THRESHOLD, Integer.parseInt(etGestureDetectThreshold.getText().toString()));
@@ -142,9 +154,9 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
         }
     }
 
-    private UhGestureDetector.OnGestureListener mGestureListener = new UhGestureDetector.OnGestureListener() {
+    private UhGestureDetector.OnFingerStatusListener mGestureListener = new UhGestureDetector.OnFingerStatusListener() {
         @Override
-        public void onHandStatusChanged(UhGestureDetector.HandData data) {
+        public void onFingerStatusChanged(UhGestureDetector.WearDevice wearDevice, long index, HandData data) {
             UhGestureDetector.FingerCondition[] allFingerCondition = new UhGestureDetector.FingerCondition[]{
                     data.thumb,
                     data.index,

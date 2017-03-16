@@ -6,7 +6,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
+import jp.co.thcomp.unlimitedhand.data.AngleData;
 import jp.co.thcomp.unlimitedhand.data.CalibrationData;
+import jp.co.thcomp.unlimitedhand.data.HandData;
 import jp.co.thcomp.unlimitedhand.data.PhotoReflectorData;
 import jp.co.thcomp.util.LogUtil;
 import jp.co.thcomp.util.ThreadUtil;
@@ -19,8 +21,12 @@ public class UhGestureDetector {
         LeftFoot,;
     }
 
-    public interface OnGestureListener {
-        void onHandStatusChanged(HandData data);
+    public interface OnFingerStatusListener {
+        void onFingerStatusChanged(WearDevice wearDevice, long index, HandData data);
+    }
+
+    public interface OnDeviceAngleListener {
+        void onDeviceAngleChanged(WearDevice wearDevice, long index, AngleData angleData);
     }
 
     public enum FingerCondition {
@@ -35,53 +41,6 @@ public class UhGestureDetector {
         NearOpposite,
     }
 
-    public static class HandData {
-        public FingerCondition thumb;
-        public FingerCondition index;
-        public FingerCondition middle;
-        public FingerCondition ring;
-        public FingerCondition pinky;
-
-        public HandData(FingerCondition baseCondition) {
-            thumb = index = middle = ring = pinky = baseCondition;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            HandData handData = (HandData) o;
-
-            if (thumb != handData.thumb) return false;
-            if (index != handData.index) return false;
-            if (middle != handData.middle) return false;
-            if (ring != handData.ring) return false;
-            return pinky == handData.pinky;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = thumb != null ? thumb.hashCode() : 0;
-            result = 31 * result + (index != null ? index.hashCode() : 0);
-            result = 31 * result + (middle != null ? middle.hashCode() : 0);
-            result = 31 * result + (ring != null ? ring.hashCode() : 0);
-            result = 31 * result + (pinky != null ? pinky.hashCode() : 0);
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "HandData{" +
-                    "thumb=" + (thumb != null ? thumb.name() : "null") +
-                    ",index=" + (index != null ? index.name() : "null") +
-                    ", middle=" + (middle != null ? middle.name() : "null") +
-                    ", ring=" + (ring != null ? ring.name() : "null") +
-                    ", pinky=" + (pinky != null ? pinky.name() : "null") +
-                    '}';
-        }
-    }
-
     public static final int DEFAULT_CALIBRATE_INTERVAL_MS = 5 * 1000;
     public static final int DEFAULT_CALIBRATE_RATE_PER_SECOND = 30;
     private static final int DEFAULT_DETECT_THRESHOLD = 10;
@@ -90,10 +49,12 @@ public class UhGestureDetector {
 
     private Context mContext;
     private UhAccessHelper mUhAccessHelper;
-    private OnGestureListener mOnGestureListener;
+    private OnFingerStatusListener mOnFingerStatusListener;
+    private OnDeviceAngleListener mOnDeviceAngleListener;
     private GestureDetector mGestureDetector = new GestureDetector();
     private WearDevice mWearDevice = WearDevice.RightArm;
     private HandData mLastHandData;
+    private long mNotifyIndex = 0;
     private int mDetectThreshold = DEFAULT_DETECT_THRESHOLD;
 
     public UhGestureDetector(Context context, UhAccessHelper uhAccessHelper, WearDevice wearDevice) {
@@ -112,17 +73,29 @@ public class UhGestureDetector {
         mWearDevice = wearDevice;
     }
 
-    public void setGestureListener(OnGestureListener listener) {
-        mOnGestureListener = listener;
+    public void setFingerStatusListener(OnFingerStatusListener listener) {
+        mOnFingerStatusListener = listener;
+        if (mGestureDetector.isListening()) {
+            mGestureDetector.stopGestureListening();
+            mGestureDetector.startGestureListening();
+        }
     }
 
-    public void startGestureListening() {
+    public void setDeviceAngleListener(OnDeviceAngleListener listener) {
+        mOnDeviceAngleListener = listener;
+        if (mGestureDetector.isListening()) {
+            mGestureDetector.stopGestureListening();
+            mGestureDetector.startGestureListening();
+        }
+    }
+
+    public void startListening() {
         if (!mGestureDetector.isListening()) {
             mGestureDetector.startGestureListening();
         }
     }
 
-    public void stopGestureListening() {
+    public void stopListening() {
         if (mGestureDetector.isListening()) {
             mGestureDetector.stopGestureListening();
         }
@@ -435,8 +408,16 @@ public class UhGestureDetector {
         public void startGestureListening() {
             if (!mListening) {
                 mListening = true;
+
+                int pollingFlag = 0;
+                if (mOnFingerStatusListener != null) {
+                    pollingFlag |= UhAccessHelper.POLLING_PHOTO_REFLECTOR;
+                }
+                if (mOnDeviceAngleListener != null) {
+                    pollingFlag |= UhAccessHelper.POLLING_ANGLE;
+                }
                 mUhAccessHelper.setPollingRatePerSecond(DEFAULT_CALIBRATE_RATE_PER_SECOND);
-                mUhAccessHelper.startPollingSensor(this, UhAccessHelper.POLLING_PHOTO_REFLECTOR);
+                mUhAccessHelper.startPollingSensor(this, pollingFlag);
             }
         }
 
@@ -453,15 +434,17 @@ public class UhGestureDetector {
 
         @Override
         public void onPollSensor(AbstractSensorData[] sensorDataArray) {
-            final OnGestureListener listener = mOnGestureListener;
+            final OnFingerStatusListener fingerStatusListener = mOnFingerStatusListener;
+            final OnDeviceAngleListener deviceAngleListener = mOnDeviceAngleListener;
 
-            if (mListening && (listener != null)) {
+            if (mListening) {
                 HashMap<CalibrationCondition, CalibrationData> calibrationDataMap = mUhAccessHelper.getCalibrationDataMap();
                 CalibrationCondition[] keyArray = calibrationDataMap.keySet().toArray(new CalibrationCondition[0]);
                 CalibrationData[] valueArray = calibrationDataMap.values().toArray(new CalibrationData[0]);
 
+                mNotifyIndex++;
                 for (AbstractSensorData sensorData : sensorDataArray) {
-                    if (sensorData instanceof PhotoReflectorData) {
+                    if ((sensorData instanceof PhotoReflectorData) && (fingerStatusListener != null)) {
                         PhotoReflectorData photoReflectorData = (PhotoReflectorData) sensorData;
                         int[] diffSizeArrayPerCondition = new int[valueArray.length];
                         int minDiffSize = Integer.MAX_VALUE;
@@ -514,7 +497,7 @@ public class UhGestureDetector {
                                     ThreadUtil.runOnMainThread(mContext, new Runnable() {
                                         @Override
                                         public void run() {
-                                            listener.onHandStatusChanged(fHandData);
+                                            fingerStatusListener.onFingerStatusChanged(mWearDevice, mNotifyIndex, fHandData);
                                         }
                                     });
                                 }
@@ -522,7 +505,14 @@ public class UhGestureDetector {
                                 mLastHandData = handData;
                             }
                         }
-                        break;
+                    } else if ((sensorData instanceof AngleData) && (deviceAngleListener != null)) {
+                        final AngleData fAngleData = new AngleData(sensorData);
+                        ThreadUtil.runOnMainThread(mContext, new Runnable() {
+                            @Override
+                            public void run() {
+                                deviceAngleListener.onDeviceAngleChanged(mWearDevice, mNotifyIndex, fAngleData);
+                            }
+                        });
                     }
                 }
             }

@@ -4,6 +4,14 @@ public class AngleData extends AbstractSensorIntegerData {
     public static final boolean IS_SUPPORT_CALIBRATION = true;
     public static final int ANGLE_NUM = 3;
 
+    public AngleData() {
+        super();
+    }
+
+    public AngleData(AbstractSensorData srcSensorData) {
+        super(srcSensorData);
+    }
+
     @Override
     public int getSensorNum() {
         return ANGLE_NUM;
