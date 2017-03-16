@@ -5,7 +5,6 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
 
-import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -207,7 +206,7 @@ public class UhAccessHelper {
     }
 
     public void startCalibration(Context context, final CalibrationCondition condition, final OnCalibrationStatusChangeListener listener) {
-        if(condition == null){
+        if (condition == null) {
             throw new NullPointerException("condition == null");
         }
 
@@ -578,7 +577,7 @@ public class UhAccessHelper {
         return ret;
     }
 
-    HashMap<CalibrationCondition, CalibrationData> getCalibrationDataMap(){
+    HashMap<CalibrationCondition, CalibrationData> getCalibrationDataMap() {
         return mCalibrationDataMap;
     }
 
@@ -728,34 +727,42 @@ public class UhAccessHelper {
                 retList.clear();
 
                 if ((pollingTargetFlag & POLLING_PHOTO_REFLECTOR) == POLLING_PHOTO_REFLECTOR) {
-                    readPhotoReflector(photoReflectorData);
-                    retList.add(photoReflectorData);
+                    if (readPhotoReflector(photoReflectorData)) {
+                        retList.add(photoReflectorData);
+                    }
                 }
                 if ((pollingTargetFlag & POLLING_ANGLE) == POLLING_ANGLE) {
-                    readAngle(angleData);
-                    retList.add(angleData);
+                    if (readAngle(angleData)) {
+                        retList.add(angleData);
+                    }
                 }
                 if ((pollingTargetFlag & POLLING_TEMPERATURE) == POLLING_TEMPERATURE) {
-                    readTemperature(temperatureData);
-                    retList.add(temperatureData);
+                    if (readTemperature(temperatureData)) {
+                        retList.add(temperatureData);
+                    }
                 }
                 if ((pollingTargetFlag & POLLING_ACCELERATION) == POLLING_ACCELERATION) {
-                    readAcceleration(accelerationData);
-                    retList.add(accelerationData);
+                    if (readAcceleration(accelerationData)) {
+                        retList.add(accelerationData);
+                    }
                 }
                 if ((pollingTargetFlag & POLLING_GYRO) == POLLING_GYRO) {
-                    readGyro(gyroData);
-                    retList.add(gyroData);
+                    if (readGyro(gyroData)) {
+                        retList.add(gyroData);
+                    }
                 }
                 if ((pollingTargetFlag & POLLING_QUATERNION) == POLLING_QUATERNION) {
-                    readQuaternion(quaternionData);
-                    retList.add(quaternionData);
+                    if (readQuaternion(quaternionData)) {
+                        retList.add(quaternionData);
+                    }
                 }
 
-                OnSensorPollingListener[] listenerArray = mPollingListenerMap.keySet().toArray(toArrayTypeListener);
-                AbstractSensorData[] dataArray = retList.toArray(toArrayTypeData);
-                for (OnSensorPollingListener listener : listenerArray) {
-                    listener.onPollSensor(dataArray);
+                if (retList.size() > 0) {
+                    OnSensorPollingListener[] listenerArray = mPollingListenerMap.keySet().toArray(toArrayTypeListener);
+                    AbstractSensorData[] dataArray = retList.toArray(toArrayTypeData);
+                    for (OnSensorPollingListener listener : listenerArray) {
+                        listener.onPollSensor(dataArray);
+                    }
                 }
 
                 long sleepTimeMS = intervalMS - (System.currentTimeMillis() - startTimeMS);

@@ -5,5 +5,10 @@
     <dimen name="alarm_display_text_size">100dp</dimen>
     <dimen name="finger_interval">16dp</dimen>
     <dimen name="finger_width">32dp</dimen>
-    <dimen name="finger_joint_height">48dp</dimen>
+    <dimen name="thumb_finger_joint_height">32dp</dimen>
+    <dimen name="index_finger_joint_height">32dp</dimen>
+    <dimen name="middle_finger_joint_height">48dp</dimen>
+    <dimen name="ring_finger_joint_height">32dp</dimen>
+    <dimen name="pinky_finger_joint_height">24dp</dimen>
+    <dimen name="hand_height">96dp</dimen>
 </resources>

@@ -7,7 +7,6 @@ import jp.co.thcomp.util.LogUtil;
 
 public abstract class AbstractSensorData<DataType> {
     protected final String channelData[] = new String[getSensorNum()];
-    protected final String calibratedChannelData[] = isSupportCalibration() ? new String[getSensorNum()] : null;
 
     abstract public int getSensorNum();
 
@@ -17,6 +16,23 @@ public abstract class AbstractSensorData<DataType> {
 
     protected String getRawDataSeparator() {
         return "\\+";
+    }
+
+    public AbstractSensorData() {
+    }
+
+    public AbstractSensorData(AbstractSensorData srcSensorData) {
+        if (srcSensorData == null) {
+            throw new NullPointerException("srcSensorData == null");
+        }
+
+        if (this.getClass() != srcSensorData.getClass()) {
+            throw new IllegalArgumentException("not match class");
+        }
+
+        for (int i = 0, size = channelData.length; i < size; i++) {
+            channelData[i] = new String(srcSensorData.channelData[i]);
+        }
     }
 
     public boolean expandRawData(byte[] rawData) {
@@ -41,16 +57,6 @@ public abstract class AbstractSensorData<DataType> {
         return ret;
     }
 
-    public boolean calibrate(CalibrationData calibrationData) {
-        boolean ret = false;
-
-        if (isSupportCalibration() && calibrationData != null) {
-            ret = true;
-        }
-
-        return ret;
-    }
-
     public DataType getRawValue(int channelNum) {
         DataType ret = null;
 
@@ -61,15 +67,10 @@ public abstract class AbstractSensorData<DataType> {
         return ret;
     }
 
-    public DataType getCalibratedValue(int channelNum) {
-        DataType ret = null;
-
-        if (channelNum >= 0 && channelNum < getSensorNum()) {
-            if (calibratedChannelData != null) {
-                ret = changeDataType(calibratedChannelData[channelNum]);
-            }
-        }
-
-        return ret;
+    @Override
+    public String toString() {
+        return "AbstractSensorData{" +
+                "channelData=" + Arrays.toString(channelData) +
+                '}';
     }
 }
