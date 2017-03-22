@@ -29,4 +29,8 @@ public class GyroData extends AbstractSensorFloatData {
 
         return ret;
     }
+
+    public Float getRawValue(UhAccessHelper.Axis axis) {
+        return getRawValue(axis.ordinal());
+    }
 }

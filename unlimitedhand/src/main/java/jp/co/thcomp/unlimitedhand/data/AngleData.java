@@ -1,5 +1,7 @@
 package jp.co.thcomp.unlimitedhand.data;
 
+import jp.co.thcomp.unlimitedhand.UhAccessHelper;
+
 public class AngleData extends AbstractSensorIntegerData {
     public static final boolean IS_SUPPORT_CALIBRATION = true;
     public static final int ANGLE_NUM = 3;
@@ -34,5 +36,9 @@ public class AngleData extends AbstractSensorIntegerData {
         }
 
         return ret;
+    }
+
+    public Integer getRawValue(UhAccessHelper.Axis axis) {
+        return getRawValue(axis.ordinal());
     }
 }

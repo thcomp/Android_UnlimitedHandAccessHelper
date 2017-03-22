@@ -15,6 +15,11 @@ public class AccelerationData extends AbstractSensorFloatData {
     }
 
     @Override
+    public boolean isSupportCalibration() {
+        return IS_SUPPORT_CALIBRATION;
+    }
+
+    @Override
     public Float getRawValue(int channelNum) {
         float ret = 0;
 
@@ -25,8 +30,7 @@ public class AccelerationData extends AbstractSensorFloatData {
         return ret;
     }
 
-    @Override
-    public boolean isSupportCalibration() {
-        return IS_SUPPORT_CALIBRATION;
+    public Float getRawValue(UhAccessHelper.Axis axis) {
+        return getRawValue(axis.ordinal());
     }
 }
