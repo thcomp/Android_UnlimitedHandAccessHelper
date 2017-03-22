@@ -9,6 +9,14 @@ public class GyroData extends AbstractSensorFloatData {
     public static final int SEPARATE_DATA_NUM = 1;
     public static final int ACCELERATION_GYRO_NUM = AccelerationData.ACCELERATION_NUM + SEPARATE_DATA_NUM + GyroData.GYRO_NUM;
 
+    public GyroData() {
+        super();
+    }
+
+    public GyroData(AbstractSensorData srcSensorData) {
+        super(srcSensorData);
+    }
+
     @Override
     public int getSensorNum() {
         return ACCELERATION_GYRO_NUM;
