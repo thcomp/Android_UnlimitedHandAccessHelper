@@ -112,6 +112,12 @@ public class UhAccessHelper {
         PR_7,
     }
 
+    public enum Axis{
+        X,
+        Y,
+        Z,
+    }
+
     private enum AccessStatus {
         NoSupportBT,
         Init,

@@ -1,5 +1,7 @@
 package jp.co.thcomp.unlimitedhand.data;
 
+import jp.co.thcomp.unlimitedhand.UhAccessHelper;
+
 public class PhotoReflectorData extends AbstractSensorIntegerData {
     public static final boolean IS_SUPPORT_CALIBRATION = true;
     public static final int PHOTO_REFLECTOR_NUM = 8;
@@ -10,12 +12,16 @@ public class PhotoReflectorData extends AbstractSensorIntegerData {
     }
 
     @Override
+    public boolean isSupportCalibration() {
+        return IS_SUPPORT_CALIBRATION;
+    }
+
+    @Override
     protected String getRawDataSeparator() {
         return "_";
     }
 
-    @Override
-    public boolean isSupportCalibration() {
-        return IS_SUPPORT_CALIBRATION;
+    public Integer getRawValue(UhAccessHelper.PhotoReflector photoReflector) {
+        return getRawValue(photoReflector.ordinal());
     }
 }
