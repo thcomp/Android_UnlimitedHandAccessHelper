@@ -33,6 +33,7 @@ import jp.co.thcomp.unlimited_hand.SensorValueDatabase;
 import jp.co.thcomp.unlimitedhand.CalibrationCondition;
 import jp.co.thcomp.unlimitedhand.CalibrationStatus;
 import jp.co.thcomp.unlimitedhand.OnCalibrationStatusChangeListener;
+import jp.co.thcomp.unlimitedhand.UhAccessHelper;
 import jp.co.thcomp.unlimitedhand.UhGestureDetector;
 import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
 import jp.co.thcomp.unlimitedhand.data.AccelerationData;
@@ -372,6 +373,9 @@ public class TestInputFragment extends AbstractTestFragment {
             }
 
             while (!isCancelled()) {
+                if(UhAccessHelper.isEnableDebug()) {
+                    LogUtil.d(TAG, "Input Sensor");
+                }
                 long startTimeMS = System.currentTimeMillis();
                 READ_SENSOR[] tempReadSensors = mReadSensors;
 
@@ -696,6 +700,7 @@ public class TestInputFragment extends AbstractTestFragment {
                 READ_SENSOR readSensor = READ_SENSOR.values()[i];
 
                 for (int j = 0, sizeJ = readSensor.mDisplayValueResIds.length; j < sizeJ; j++) {
+                    LogUtil.d(TAG, mSensorDataArray[i].toString());
                     mTvReadSensorValues[i][j].setText(String.valueOf(mSensorDataArray[i].getRawValue(j)));
                 }
             }

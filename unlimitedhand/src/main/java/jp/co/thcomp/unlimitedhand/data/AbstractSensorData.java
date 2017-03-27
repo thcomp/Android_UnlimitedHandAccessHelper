@@ -14,7 +14,7 @@ public abstract class AbstractSensorData<DataType> {
 
     abstract public boolean isSupportCalibration();
 
-    protected String getRawDataSeparator() {
+    public String getRawDataSeparator() {
         return "\\+";
     }
 
@@ -36,22 +36,27 @@ public abstract class AbstractSensorData<DataType> {
     }
 
     public boolean expandRawData(byte[] rawData) {
-        if (UhAccessHelper.isEnableDebug()) {
-            LogUtil.d(UhAccessHelper.TAG, getClass().getSimpleName() + ".expandRawData: rawData = " + Arrays.toString(rawData));
-        }
-
         boolean ret = true;
-        String[] rawDataSplitArray = new String(rawData).split(getRawDataSeparator());
 
-        for (int i = 0, size = getSensorNum(); i < size; i++) {
-            try {
-                channelData[i] = rawDataSplitArray[i];
-            } catch (ArrayIndexOutOfBoundsException e) {
-                channelData[i] = null;
-            } catch (Exception e) {
-                ret = false;
-                break;
+        if (rawData != null) {
+            String[] rawDataSplitArray = new String(rawData).split(getRawDataSeparator());
+
+            if (UhAccessHelper.isEnableDebug()) {
+                LogUtil.d(UhAccessHelper.TAG, getClass().getSimpleName() + ".expandRawData: rawData = " + Arrays.toString(rawDataSplitArray));
             }
+
+            for (int i = 0, size = getSensorNum(); i < size; i++) {
+                try {
+                    channelData[i] = rawDataSplitArray[i];
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    channelData[i] = null;
+                } catch (Exception e) {
+                    ret = false;
+                    break;
+                }
+            }
+        } else {
+            ret = false;
         }
 
         return ret;
@@ -69,7 +74,7 @@ public abstract class AbstractSensorData<DataType> {
 
     @Override
     public String toString() {
-        return "AbstractSensorData{" +
+        return this.getClass().getSimpleName() + "{" +
                 "channelData=" + Arrays.toString(channelData) +
                 '}';
     }

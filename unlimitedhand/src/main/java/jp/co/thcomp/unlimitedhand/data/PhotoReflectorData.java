@@ -17,7 +17,7 @@ public class PhotoReflectorData extends AbstractSensorIntegerData {
     }
 
     @Override
-    protected String getRawDataSeparator() {
+    public String getRawDataSeparator() {
         return "_";
     }
 
