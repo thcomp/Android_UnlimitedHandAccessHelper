@@ -1,0 +1,414 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:tools="http://schemas.android.com/tools"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:context="jp.co.thcomp.unlimited_hand.fragment.TestInputFragment">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:weightSum="0.3"
+                android:orientation="horizontal">
+                <CheckBox
+                    android:id="@+id/cbPhotoSensor"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.1"
+                    android:text="photo"/>
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="1px" />
+
+                <CheckBox
+                    android:id="@+id/cbAngle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.1"
+                    android:text="angle"/>
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="1px" />
+
+                <CheckBox
+                    android:id="@+id/cbTemperature"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.1"
+                    android:text="temp"/>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:weightSum="0.3"
+                android:orientation="horizontal">
+                <CheckBox
+                    android:id="@+id/cbAcceleration"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.1"
+                    android:text="accel"/>
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="1px" />
+
+                <CheckBox
+                    android:id="@+id/cbGyro"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.1"
+                    android:text="gyro"/>
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="1px" />
+
+                <CheckBox
+                    android:id="@+id/cbQuaternion"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.1"
+                    android:text="quater"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnStartInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="start to read sensor"/>
+
+        <EditText
+            android:id="@+id/etFingerValue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:hint="00000 - 44444(0: Straight, 4: Curve)"/>
+
+        <LinearLayout
+            android:id="@+id/llStopInputArea"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:orientation="vertical">
+            <Button
+                android:id="@+id/btnStopInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="stop to read sensor"/>
+        </LinearLayout>
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="8dp" />
+
+        <LinearLayout
+            android:id="@+id/llReadSensorValueArea"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Photo sensor: "/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="1.0"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tvPhotoSensor0"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvPhotoSensor1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvPhotoSensor2"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvPhotoSensor3"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="1.0"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tvPhotoSensor4"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvPhotoSensor5"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvPhotoSensor6"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvPhotoSensor7"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Angle: "/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="0.9"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tvAngle0"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.3"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvAngle1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.3"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvAngle2"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.3"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Temperature: "/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="1.0"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tvTemperature0"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.0"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Acceleration: "/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="0.9"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tvAcceleration0"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.3"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvAcceleration1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.3"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvAcceleration2"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.3"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Gyro: "/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="0.9"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tvGyro0"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.3"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvGyro1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.3"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvGyro2"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.3"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Quaternion: "/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="1.0"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tvQuaternion0"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvQuaternion1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvQuaternion2"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvQuaternion3"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.25"/>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="1.0"
+            android:visibility="gone"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etAddress"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:hint="input mail address"
+                android:layout_weight="1.0"/>
+
+            <Button
+                android:id="@+id/btnSendDataByMail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="send"/>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnSaveData"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="save data on storage with compressed by zip"/>
+
+        <Button
+            android:id="@+id/btnClearData"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="clear data"/>
+    </LinearLayout>
+</ScrollView>

@@ -27,6 +27,7 @@ import jp.co.thcomp.unlimited_hand.fragment.TestBatchOutputFragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestGestureDetector2Fragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestGestureDetectorFragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestInputFragment;
+import jp.co.thcomp.unlimited_hand.fragment.TestMLDataOutputFragment;
 import jp.co.thcomp.unlimited_hand.fragment.TestOutputFragment;
 import jp.co.thcomp.unlimitedhand.UhAccessHelper;
 import jp.co.thcomp.util.Constant;
@@ -38,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements AbstractTestFragm
             new MenuItem("output", TestOutputFragment.class),
             new MenuItem("batch output", TestBatchOutputFragment.class),
             new MenuItem("input", TestInputFragment.class),
+            new MenuItem("input ml data", TestMLDataOutputFragment.class),
             new MenuItem("finger status", TestGestureDetectorFragment.class),
             new MenuItem("angle status", TestGestureDetector2Fragment.class),
     };

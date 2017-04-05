@@ -27,12 +27,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.zip.GZIPOutputStream;
 
-import jp.co.thcomp.unlimited_hand.Common;
+import jp.co.thcomp.unlimited_hand.MLSensorValueDatabase;
 import jp.co.thcomp.unlimited_hand.R;
-import jp.co.thcomp.unlimited_hand.SensorValueDatabase;
-import jp.co.thcomp.unlimitedhand.CalibrationCondition;
-import jp.co.thcomp.unlimitedhand.CalibrationStatus;
-import jp.co.thcomp.unlimitedhand.OnCalibrationStatusChangeListener;
+import jp.co.thcomp.unlimited_hand.data.AbstractMLSensorData;
+import jp.co.thcomp.unlimited_hand.data.MLSensorData;
 import jp.co.thcomp.unlimitedhand.UhAccessHelper;
 import jp.co.thcomp.unlimitedhand.UhGestureDetector;
 import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
@@ -48,52 +46,47 @@ import jp.co.thcomp.util.PreferenceUtil;
 import jp.co.thcomp.util.ThreadUtil;
 import jp.co.thcomp.util.ToastUtil;
 
-public class TestInputFragment extends AbstractTestFragment {
-    private static final String TAG = TestInputFragment.class.getSimpleName();
+public class TestMLDataOutputFragment extends AbstractTestFragment {
+    private static final String TAG = TestMLDataOutputFragment.class.getSimpleName();
     private static final String TEMPORARY_ZIP_FILE = "sensor_data_%1$04d%2$02d%3$02d_%4$02d%5$02d%6$02d.gzip";
     private static final String PREF_LAST_MAIL_ADDRESS = "PREF_LAST_MAIL_ADDRESS";
     private static final int REQUEST_CODE_WRITE_STORAGE = "REQUEST_CODE_WRITE_STORAGE".hashCode() & 0x0000FFFF;
     private static final int DEFAULT_READ_FPS = 30;
     private static final int DEFAULT_READ_INTERVAL_MS = (int) (1000 / DEFAULT_READ_FPS);
-    private static final int DEFAULT_CALIBRATION_ANGLE = 0;
 
     private enum READ_SENSOR {
-        PHOTO(R.id.cbPhotoSensor, PhotoReflectorData.class,
+        PHOTO(R.id.cbPhotoSensor, true, PhotoReflectorData.class, UhAccessHelper.POLLING_PHOTO_REFLECTOR,
                 R.id.tvPhotoSensor0, R.id.tvPhotoSensor1, R.id.tvPhotoSensor2, R.id.tvPhotoSensor3,
                 R.id.tvPhotoSensor4, R.id.tvPhotoSensor5, R.id.tvPhotoSensor6, R.id.tvPhotoSensor7),
-        ANGLE(R.id.cbAngle, AngleData.class,
+        ANGLE(R.id.cbAngle, false, AngleData.class, UhAccessHelper.POLLING_ANGLE,
                 R.id.tvAngle0, R.id.tvAngle1, R.id.tvAngle2),
-        TEMPERATURE(R.id.cbTemperature, TemperatureData.class, R.id.tvTemperature0),
-        ACCELERATION(R.id.cbAcceleration, AccelerationData.class,
+        TEMPERATURE(R.id.cbTemperature, false, TemperatureData.class, UhAccessHelper.POLLING_TEMPERATURE, R.id.tvTemperature0),
+        ACCELERATION(R.id.cbAcceleration, true, AccelerationData.class, UhAccessHelper.POLLING_ACCELERATION,
                 R.id.tvAcceleration0, R.id.tvAcceleration1, R.id.tvAcceleration2),
-        GYRO(R.id.cbGyro, GyroData.class,
+        GYRO(R.id.cbGyro, true, GyroData.class, UhAccessHelper.POLLING_GYRO,
                 R.id.tvGyro0, R.id.tvGyro1, R.id.tvGyro2),
-        QUATERNION(R.id.cbQuaternion, QuaternionData.class,
+        QUATERNION(R.id.cbQuaternion, false, QuaternionData.class, UhAccessHelper.POLLING_QUATERNION,
                 R.id.tvQuaternion0, R.id.tvQuaternion1, R.id.tvQuaternion2, R.id.tvQuaternion3),;
 
         int mViewResId;
+        boolean mDefaultChecked;
         Class mDataClass;
+        int mPollingFlagValue;
         int[] mDisplayValueResIds;
 
-        READ_SENSOR(int viewResId, Class dataClass, int... displayValueResIds) {
+        READ_SENSOR(int viewResId, boolean defaultChecked, Class dataClass, int pollingFlagValue, int... displayValueResIds) {
             mViewResId = viewResId;
+            mDefaultChecked = defaultChecked;
             mDataClass = dataClass;
+            mPollingFlagValue = pollingFlagValue;
             mDisplayValueResIds = displayValueResIds;
         }
     }
 
-    private UhGestureDetector mGestureDetector;
-    private SensorValueDatabase mDatabase;
+    private MLSensorValueDatabase mDatabase;
     private ReadInputSensorTask mReadInputSensorTask;
-    private EditText mCalibrateDeviceAngle;
-    private EditText mMarkDescription;
+    private EditText mFingerValue;
     private EditText mAddress;
-    private PhotoReflectorData mPhotoReflectorData = new PhotoReflectorData();
-    private AngleData mAngleData = new AngleData();
-    private TemperatureData mTemperatureData = new TemperatureData();
-    private AccelerationData mAccelerationData = new AccelerationData();
-    private GyroData mGyroData = new GyroData();
-    private QuaternionData mQuaternionData = new QuaternionData();
     private TextView[][] mTvReadSensorValues = {
             new TextView[PhotoReflectorData.PHOTO_REFLECTOR_NUM],
             new TextView[AngleData.ANGLE_NUM],
@@ -104,16 +97,9 @@ public class TestInputFragment extends AbstractTestFragment {
     };
     private SaveSensorDataTask mSaveSensorDataTask = null;
     private ClearSensorDataTask mClearSensorDataTask = null;
-    private AbstractSensorData[] mSensorDataArray = {
-            mPhotoReflectorData,
-            mAngleData,
-            mTemperatureData,
-            mAccelerationData,
-            mGyroData,
-            mQuaternionData,
-    };
+    private ArrayList<AbstractSensorData> mSensorDataList = null;
 
-    public TestInputFragment() {
+    public TestMLDataOutputFragment() {
         // Required empty public constructor
     }
 
@@ -123,20 +109,20 @@ public class TestInputFragment extends AbstractTestFragment {
      *
      * @return A new instance of fragment TestInputFragment.
      */
-    public static TestInputFragment newInstance() {
-        TestInputFragment fragment = new TestInputFragment();
+    public static TestMLDataOutputFragment newInstance() {
+        TestMLDataOutputFragment fragment = new TestMLDataOutputFragment();
         return fragment;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mDatabase = new SensorValueDatabase(getContext(), 1);
+        mDatabase = new MLSensorValueDatabase(getContext(), 1);
     }
 
     @Override
     int getLayoutResId() {
-        return R.layout.fragment_test_input;
+        return R.layout.fragment_test_ml_data_output;
     }
 
     @Override
@@ -145,15 +131,11 @@ public class TestInputFragment extends AbstractTestFragment {
         // Inflate the layout for this fragment
         mRootView = super.onCreateView(inflater, container, savedInstanceState);
 
-        mGestureDetector = new UhGestureDetector(getActivity(), mUHAccessHelper, UhGestureDetector.WearDevice.RightArm);
-        mCalibrateDeviceAngle = (EditText) mRootView.findViewById(R.id.etCalibrationAngle);
-        mCalibrateDeviceAngle.setText(String.valueOf(PreferenceUtil.readPrefInt(getActivity(), Common.PREF_INT_CALIBRATE_DEVICE_ANGLE, DEFAULT_CALIBRATION_ANGLE)));
-        mMarkDescription = (EditText) mRootView.findViewById(R.id.etDescription);
+        mFingerValue = (EditText) mRootView.findViewById(R.id.etFingerValue);
         mAddress = (EditText) mRootView.findViewById(R.id.etAddress);
         mAddress.setText(PreferenceUtil.readPrefString(getActivity(), PREF_LAST_MAIL_ADDRESS));
         mRootView.findViewById(R.id.btnStartInput).setOnClickListener(mBtnClickListener);
         mRootView.findViewById(R.id.btnStopInput).setOnClickListener(mBtnClickListener);
-        mRootView.findViewById(R.id.btnInsertMark).setOnClickListener(mBtnClickListener);
         mRootView.findViewById(R.id.btnSendDataByMail).setOnClickListener(mBtnClickListener);
         mRootView.findViewById(R.id.btnSaveData).setOnClickListener(mBtnClickListener);
         mRootView.findViewById(R.id.btnClearData).setOnClickListener(mBtnClickListener);
@@ -161,6 +143,7 @@ public class TestInputFragment extends AbstractTestFragment {
         for (int i = 0, sizeI = READ_SENSOR.values().length; i < sizeI; i++) {
             READ_SENSOR readSensor = READ_SENSOR.values()[i];
 
+            ((CheckBox) mRootView.findViewById(readSensor.mViewResId)).setChecked(readSensor.mDefaultChecked);
             for (int j = 0, sizeJ = readSensor.mDisplayValueResIds.length; j < sizeJ; j++) {
                 mTvReadSensorValues[i][j] = (TextView) mRootView.findViewById(readSensor.mDisplayValueResIds[j]);
             }
@@ -186,14 +169,13 @@ public class TestInputFragment extends AbstractTestFragment {
     public void onPause() {
         super.onPause();
         PreferenceUtil.writePref(getActivity(), PREF_LAST_MAIL_ADDRESS, mAddress.getText().toString());
-        PreferenceUtil.writePref(getActivity(), Common.PREF_INT_CALIBRATE_DEVICE_ANGLE, mCalibrateDeviceAngle.getText().toString());
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         if (mReadInputSensorTask != null) {
-            mReadInputSensorTask.cancel(true);
+            mReadInputSensorTask.cancel();
             mReadInputSensorTask = null;
         }
         if (mClearSensorDataTask != null) {
@@ -213,20 +195,6 @@ public class TestInputFragment extends AbstractTestFragment {
             mRootView.findViewById(R.id.llStopInputArea).setVisibility(View.VISIBLE);
             mRootView.findViewById(R.id.btnStartInput).setVisibility(View.GONE);
         }
-    }
-
-    private void insertMark() {
-        final READ_SENSOR[] readSensors = mReadInputSensorTask.mReadSensors;
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                ArrayList<Class> targetClassList = new ArrayList<Class>();
-                for (READ_SENSOR readSensor : readSensors) {
-                    targetClassList.add(readSensor.mDataClass);
-                }
-                mDatabase.insertMark(targetClassList.toArray(new Class[0]), mMarkDescription.getText().toString());
-            }
-        }).start();
     }
 
     private void sendDataByMail() {
@@ -302,15 +270,12 @@ public class TestInputFragment extends AbstractTestFragment {
                     break;
                 case R.id.btnStopInput:
                     if (mReadInputSensorTask != null) {
-                        mReadInputSensorTask.cancel(false);
+                        mReadInputSensorTask.cancel();
                         mReadInputSensorTask = null;
 
                         mRootView.findViewById(R.id.btnStartInput).setVisibility(View.VISIBLE);
                         mRootView.findViewById(R.id.llStopInputArea).setVisibility(View.GONE);
                     }
-                    break;
-                case R.id.btnInsertMark:
-                    insertMark();
                     break;
                 case R.id.btnSendDataByMail:
                     sendDataByMail();
@@ -325,128 +290,56 @@ public class TestInputFragment extends AbstractTestFragment {
         }
     };
 
-    private class ReadInputSensorTask extends AsyncTask<Integer, Void, Void> implements OnCalibrationStatusChangeListener {
-        private READ_SENSOR[] mReadSensors;
-        private ThreadUtil.OnetimeSemaphore mCalibrationSemaphore = new ThreadUtil.OnetimeSemaphore();
-        private int mCalibrateDeviceAngleNumber;
+    private class ReadInputSensorTask implements UhAccessHelper.OnSensorPollingListener {
+        private boolean mCanceled = false;
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-
-            try {
-                mCalibrateDeviceAngleNumber = Integer.valueOf(mCalibrateDeviceAngle.getText().toString());
-            } catch (NumberFormatException e) {
-                mCalibrateDeviceAngleNumber = DEFAULT_CALIBRATION_ANGLE;
-                ToastUtil.showToast(getActivity(), "cannot use " + mCalibrateDeviceAngle.getText().toString() + "\nuse " + DEFAULT_CALIBRATION_ANGLE, Toast.LENGTH_SHORT);
-            }
-            mUpdateTargetSensorRunnable.run();
-        }
-
-        @Override
-        protected void onCancelled() {
-            super.onCancelled();
-            mCalibrationSemaphore.stop();
-        }
-
-        @Override
-        protected void onCancelled(Void aVoid) {
-            super.onCancelled(aVoid);
-            mCalibrationSemaphore.stop();
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-        }
-
-        @Override
-        protected Void doInBackground(Integer... integers) {
-            CalibrationCondition condition = new CalibrationCondition(mCalibrateDeviceAngleNumber, CalibrationCondition.HandStatus.HandOpen);
-            mGestureDetector.startCalibration(getActivity(), condition, this);
-            mCalibrationSemaphore.start();
-
-            Integer intervalMS = integers != null && integers.length > 0 ? integers[0] : DEFAULT_READ_INTERVAL_MS;
-
-            if (intervalMS <= 0) {
-                intervalMS = DEFAULT_READ_INTERVAL_MS;
+        public void execute(Integer... pollingRatePerSecond) {
+            if ((pollingRatePerSecond != null) && (pollingRatePerSecond.length > 0) && (pollingRatePerSecond[0] > 0)) {
+                mUHAccessHelper.setPollingRatePerSecond(pollingRatePerSecond[0]);
             }
 
-            while (!isCancelled()) {
-                if(UhAccessHelper.isEnableDebug()) {
-                    LogUtil.d(TAG, "Input Sensor");
-                }
-                long startTimeMS = System.currentTimeMillis();
-                READ_SENSOR[] tempReadSensors = mReadSensors;
+            int pollingFlag = 0;
+            for (READ_SENSOR readSensor : READ_SENSOR.values()) {
+                pollingFlag += ((CheckBox) mRootView.findViewById(readSensor.mViewResId)).isChecked() ? readSensor.mPollingFlagValue : 0;
+            }
 
-                for (int i = 0, size = tempReadSensors.length; i < size; i++) {
-                    switch (tempReadSensors[i]) {
-                        case PHOTO:
-                            if (mUHAccessHelper.readPhotoReflector(mPhotoReflectorData)) {
-                                mDatabase.insertData(mPhotoReflectorData);
-                            }
-                            break;
-                        case ANGLE:
-                            if (mUHAccessHelper.readAngle(mAngleData)) {
-                                mDatabase.insertData(mAngleData);
-                            }
-                            break;
-                        case TEMPERATURE:
-                            if (mUHAccessHelper.readTemperature(mTemperatureData)) {
-                                mDatabase.insertData(mTemperatureData);
-                            }
-                            break;
-                        case ACCELERATION:
-                            if (mUHAccessHelper.readAcceleration(mAccelerationData)) {
-                                mDatabase.insertData(mAccelerationData);
-                            }
-                            break;
-                        case GYRO:
-                            if (mUHAccessHelper.readGyro(mGyroData)) {
-                                mDatabase.insertData(mGyroData);
-                            }
-                            break;
-                        case QUATERNION:
-                            if (mUHAccessHelper.readQuaternion(mQuaternionData)) {
-                                mDatabase.insertData(mQuaternionData);
-                            }
-                            break;
+            mUHAccessHelper.startPollingSensor(this, pollingFlag);
+        }
+
+        public void cancel() {
+            mCanceled = true;
+            mUHAccessHelper.stopPollingSensor(this);
+        }
+
+        @Override
+        public void onPollSensor(AbstractSensorData[] sensorDataArray) {
+            if (!mCanceled) {
+                ArrayList<AbstractSensorData> tempSensorDataList = new ArrayList<AbstractSensorData>();
+
+                for (int i = 0, size = sensorDataArray.length; i < size; i++) {
+                    if (sensorDataArray[i] instanceof PhotoReflectorData) {
+                        tempSensorDataList.add(new PhotoReflectorData(sensorDataArray[i]));
+                    } else if (sensorDataArray[i] instanceof AngleData) {
+                        tempSensorDataList.add(new AngleData(sensorDataArray[i]));
+                    } else if (sensorDataArray[i] instanceof TemperatureData) {
+                        tempSensorDataList.add(new TemperatureData(sensorDataArray[i]));
+                    } else if (sensorDataArray[i] instanceof AccelerationData) {
+                        tempSensorDataList.add(new AccelerationData(sensorDataArray[i]));
+                    } else if (sensorDataArray[i] instanceof GyroData) {
+                        tempSensorDataList.add(new GyroData(sensorDataArray[i]));
                     }
                 }
+
+                mSensorDataList = tempSensorDataList;
                 Activity activity = getActivity();
                 if (activity != null) {
                     ThreadUtil.runOnMainThread(activity, mUpdateReadSensorValueRunnable);
-
-                    long endTimeMS = System.currentTimeMillis();
-                    long sleepTimeMS = intervalMS - (endTimeMS - startTimeMS);
-
-                    if (sleepTimeMS > 0) {
-                        try {
-                            Thread.sleep(sleepTimeMS);
-                        } catch (InterruptedException e) {
-                        }
-                    }
                 }
+
+                new Thread(mInsertSensorValueRunnable).start();
+            } else {
+                mUHAccessHelper.stopPollingSensor(this);
             }
-
-            return null;
-        }
-
-        @Override
-        public void onCalibrationStatusChange(CalibrationCondition calibrationCondition, CalibrationStatus status) {
-            switch (status) {
-                case CalibrateSuccess:
-                    ToastUtil.showToast(getActivity(), "calibration success", Toast.LENGTH_SHORT);
-                    break;
-                case CalibrateFail:
-                    ToastUtil.showToast(getActivity(), "calibration fail", Toast.LENGTH_SHORT);
-                    break;
-                case Calibrating:
-                default:
-                    return;
-            }
-
-            mCalibrationSemaphore.stop();
         }
     }
 
@@ -497,110 +390,32 @@ public class TestInputFragment extends AbstractTestFragment {
                 gzipOutputStream = new GZIPOutputStream(outputStream);
 
                 Class[] dataClassArray = {
-                        PhotoReflectorData.class,
-                        AngleData.class,
-                        TemperatureData.class,
-                        AccelerationData.class,
-                        GyroData.class,
-                        QuaternionData.class,
-                };
-                int[] dataCountArray = {
-                        PhotoReflectorData.PHOTO_REFLECTOR_NUM,
-                        AngleData.ANGLE_NUM,
-                        TemperatureData.TEMPERATURE_NUM,
-                        AccelerationData.ACCELERATION_NUM,
-                        GyroData.GYRO_NUM,
-                        QuaternionData.QUATERNION_NUM,
+                        MLSensorData.class,
                 };
                 Cursor[] dataCursorArray = {
                         mDatabase.getData(dataClassArray[0]),
-                        mDatabase.getData(dataClassArray[1]),
-                        mDatabase.getData(dataClassArray[2]),
-                        mDatabase.getData(dataClassArray[3]),
-                        mDatabase.getData(dataClassArray[4]),
-                        mDatabase.getData(dataClassArray[5]),
                 };
-                boolean[] finished = new boolean[dataClassArray.length];
-                Integer descriptionIndex = null;
 
                 for (int i = 0, size = dataCursorArray.length; i < size; i++) {
                     dataCursorArray[i].moveToFirst();
                 }
 
                 // sort by COLUMN_CDATE
-                while (true) {
+                for (int i = 0, sizeI = dataClassArray.length; i < sizeI; i++) {
                     StringBuilder dataLineBuilder = new StringBuilder();
-                    Integer oldestDataCursorIndex = null;
-                    long tempCData = Long.MAX_VALUE;
 
-                    for (int i = 0, size = dataCursorArray.length; i < size; i++) {
-                        finished[i] = dataCursorArray[i].isAfterLast();
+                    Cursor targetCursor = dataCursorArray[i];
+                    Class targetDataClass = dataClassArray[i];
 
-                        if (!finished[i]) {
-                            long targetCData = dataCursorArray[i].getLong(0);
-                            if (tempCData > targetCData) {
-                                tempCData = targetCData;
-                                oldestDataCursorIndex = i;
-                            }
-                        }
-                    }
 
-                    if (oldestDataCursorIndex == null) {
-                        break;
-                    } else {
-                        Cursor targetCursor = dataCursorArray[oldestDataCursorIndex];
-                        Class targetDataClass = dataClassArray[oldestDataCursorIndex];
+                    Constructor constructor = targetDataClass.getConstructor();
+                    AbstractMLSensorData tempInstance = (AbstractMLSensorData) constructor.newInstance();
 
-                        dataLineBuilder.append(targetDataClass.getSimpleName());
-
-                        if (descriptionIndex == null) {
-                            descriptionIndex = targetCursor.getColumnIndex(SensorValueDatabase.COLUMN_DESCRIPTION);
-                        }
-                        String description = targetCursor.getString(descriptionIndex);
-                        if (description != null) {
-                            // mark row
-                            dataLineBuilder.append(",").append(description).append("\n");
-                        } else {
-                            Constructor constructor = targetDataClass.getConstructor();
-                            AbstractSensorData tempInstance = (AbstractSensorData) constructor.newInstance();
-
-                            dataLineBuilder.append(",").append(tempCData);
-                            for (int i = 0, size = dataCountArray[oldestDataCursorIndex]; i < size; i++) {
-                                String columnName = SensorValueDatabase.getSensorValueColumnName(i);
-                                int dataIndex = targetCursor.getColumnIndex(columnName);
-                                int dataType = targetCursor.getType(dataIndex);
-
-                                if (dataType == Cursor.FIELD_TYPE_INTEGER) {
-                                    dataLineBuilder.append(",").append(targetCursor.getInt(dataIndex));
-                                } else if (dataType == Cursor.FIELD_TYPE_FLOAT) {
-                                    dataLineBuilder.append(",").append(targetCursor.getFloat(dataIndex));
-                                } else if (dataType == Cursor.FIELD_TYPE_STRING) {
-                                    dataLineBuilder.append(",").append(targetCursor.getString(dataIndex));
-                                }
-                            }
-
-//                            if (tempInstance.isSupportCalibration()) {
-//                                dataLineBuilder.append(",").append(tempCData);
-//                                for (int i = 0, size = dataCountArray[oldestDataCursorIndex]; i < size; i++) {
-//                                    String columnName = SensorValueDatabase.getCalibratedSensorValueColumnName(i);
-//                                    int dataIndex = targetCursor.getColumnIndex(columnName);
-//                                    int dataType = targetCursor.getType(dataIndex);
-//
-//                                    if (dataType == Cursor.FIELD_TYPE_INTEGER) {
-//                                        dataLineBuilder.append(",").append(targetCursor.getInt(dataIndex));
-//                                    } else if (dataType == Cursor.FIELD_TYPE_FLOAT) {
-//                                        dataLineBuilder.append(",").append(targetCursor.getFloat(dataIndex));
-//                                    } else if (dataType == Cursor.FIELD_TYPE_STRING) {
-//                                        dataLineBuilder.append(",").append(targetCursor.getString(dataIndex));
-//                                    }
-//                                }
-//                            }
-                            dataLineBuilder.append("\n");
-                        }
+                    for (; !targetCursor.isAfterLast(); targetCursor.moveToNext()) {
+                        dataLineBuilder.append(tempInstance.getMLSensorData(targetCursor)).append("\n");
 
                         byte[] writeData = dataLineBuilder.toString().getBytes();
                         gzipOutputStream.write(writeData, 0, writeData.length);
-                        targetCursor.moveToNext();
                     }
                 }
 
@@ -616,17 +431,17 @@ public class TestInputFragment extends AbstractTestFragment {
 
                 temporaryFile.setReadable(true);
             } catch (FileNotFoundException e) {
-                e.printStackTrace();
+                LogUtil.exception(TAG, e);
             } catch (IOException e) {
-                e.printStackTrace();
+                LogUtil.exception(TAG, e);
             } catch (NoSuchMethodException e) {
-                e.printStackTrace();
+                LogUtil.exception(TAG, e);
             } catch (java.lang.InstantiationException e) {
-                e.printStackTrace();
+                LogUtil.exception(TAG, e);
             } catch (IllegalAccessException e) {
-                e.printStackTrace();
+                LogUtil.exception(TAG, e);
             } catch (InvocationTargetException e) {
-                e.printStackTrace();
+                LogUtil.exception(TAG, e);
             } finally {
                 if (gzipOutputStream != null) {
                     try {
@@ -693,36 +508,58 @@ public class TestInputFragment extends AbstractTestFragment {
         }
     }
 
-    private Runnable mUpdateReadSensorValueRunnable = new Runnable() {
+    private Runnable mInsertSensorValueRunnable = new Runnable() {
         @Override
         public void run() {
-            for (int i = 0, sizeI = READ_SENSOR.values().length; i < sizeI; i++) {
-                READ_SENSOR readSensor = READ_SENSOR.values()[i];
+            ArrayList<AbstractSensorData> tempSensorDataList = mSensorDataList;
 
-                for (int j = 0, sizeJ = readSensor.mDisplayValueResIds.length; j < sizeJ; j++) {
-                    LogUtil.d(TAG, mSensorDataArray[i].toString());
-                    mTvReadSensorValues[i][j].setText(String.valueOf(mSensorDataArray[i].getRawValue(j)));
+            if (tempSensorDataList != null && tempSensorDataList.size() > 0) {
+                MLSensorData mlSensorData = new MLSensorData();
+                for (AbstractSensorData sensorData : tempSensorDataList) {
+                    if (sensorData instanceof PhotoReflectorData) {
+                        for (int i = 0, size = PhotoReflectorData.PHOTO_REFLECTOR_NUM; i < size; i++) {
+                            mlSensorData.prDataArray[i] = String.valueOf(sensorData.getRawValue(i));
+                        }
+                    } else if (sensorData instanceof AccelerationData) {
+                        for (int i = 0, size = AccelerationData.ACCELERATION_NUM; i < size; i++) {
+                            mlSensorData.accelDataArray[i] = String.valueOf(sensorData.getRawValue(i));
+                        }
+                    } else if (sensorData instanceof GyroData) {
+                        for (int i = 0, size = GyroData.GYRO_NUM; i < size; i++) {
+                            mlSensorData.gyroDataArray[i] = String.valueOf(sensorData.getRawValue(i));
+                        }
+                    }
                 }
-            }
+                mlSensorData.label = mFingerValue.getText().toString();
 
-            mUpdateTargetSensorRunnable.run();
+                mDatabase.insertData(mlSensorData);
+            }
         }
     };
 
-    private Runnable mUpdateTargetSensorRunnable = new Runnable() {
+    private Runnable mUpdateReadSensorValueRunnable = new Runnable() {
         @Override
         public void run() {
-            if (mReadInputSensorTask != null) {
-                ArrayList<READ_SENSOR> readSensorList = new ArrayList<READ_SENSOR>();
-                READ_SENSOR[] allReadSensors = READ_SENSOR.values();
+            ArrayList<AbstractSensorData> tempSensorDataList = mSensorDataList;
+            for (int i = 0, sizeI = tempSensorDataList.size(); i < sizeI; i++) {
+                AbstractSensorData tempSensorData = tempSensorDataList.get(i);
 
-                for (READ_SENSOR allReadSensor : allReadSensors) {
-                    if (((CheckBox) mRootView.findViewById(allReadSensor.mViewResId)).isChecked()) {
-                        readSensorList.add(allReadSensor);
-                    }
+
+                READ_SENSOR readSensor = null;
+                if (tempSensorData instanceof PhotoReflectorData) {
+                    readSensor = READ_SENSOR.PHOTO;
+                } else if (tempSensorData instanceof AccelerationData) {
+                    readSensor = READ_SENSOR.ACCELERATION;
+                } else if (tempSensorData instanceof GyroData) {
+                    readSensor = READ_SENSOR.GYRO;
                 }
 
-                mReadInputSensorTask.mReadSensors = readSensorList.toArray(new READ_SENSOR[0]);
+                if (readSensor != null) {
+                    for (int j = 0, sizeJ = readSensor.mDisplayValueResIds.length; j < sizeJ; j++) {
+                        LogUtil.d(TAG, tempSensorData.toString());
+                        mTvReadSensorValues[readSensor.ordinal()][j].setText(String.valueOf(tempSensorData.getRawValue(j)));
+                    }
+                }
             }
         }
     };

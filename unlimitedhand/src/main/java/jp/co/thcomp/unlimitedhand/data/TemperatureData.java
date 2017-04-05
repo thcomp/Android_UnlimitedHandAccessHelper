@@ -5,6 +5,14 @@ public class TemperatureData extends AbstractSensorFloatData {
     public static final int TEMPERATURE_NUM = 1;
     private static final int ANGLE_AND_TEMPERATURE_NUM = 4;
 
+    public TemperatureData() {
+        super();
+    }
+
+    public TemperatureData(AbstractSensorData srcSensorData) {
+        super(srcSensorData);
+    }
+
     @Override
     public int getSensorNum() {
         return ANGLE_AND_TEMPERATURE_NUM;

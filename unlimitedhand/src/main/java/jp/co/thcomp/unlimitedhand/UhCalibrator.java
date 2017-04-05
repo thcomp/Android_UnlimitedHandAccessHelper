@@ -130,7 +130,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
         LogUtil.d(TAG, "Calibration Data: " + data);
 
         for (AbstractSensorData sensorData : sensorDataArray) {
-            if (sensorData instanceof PhotoReflectorData) {
+            if (PhotoReflectorData.IS_SUPPORT_CALIBRATION && sensorData instanceof PhotoReflectorData) {
                 calibratingData = mCalibratingDataMap.get(PhotoReflectorData.class);
                 PhotoReflectorData photoReflectorData = (PhotoReflectorData) sensorData;
 
@@ -147,7 +147,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
                     calibratingData.count = 1;
                     calibratingData.enoughCount = true;
                 }
-            } else if (sensorData instanceof AccelerationData) {
+            } else if (AccelerationData.IS_SUPPORT_CALIBRATION && sensorData instanceof AccelerationData) {
                 calibratingData = mCalibratingDataMap.get(AccelerationData.class);
                 AccelerationData accelerationData = (AccelerationData) sensorData;
                 Float[] rawValueArray = new Float[AccelerationData.ACCELERATION_NUM];
@@ -173,8 +173,11 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
                     calibratingData.count = 1;
                     calibratingData.enoughCount = true;
                 }
-            } else if (sensorData instanceof GyroData) {
+            } else if (GyroData.IS_SUPPORT_CALIBRATION && sensorData instanceof GyroData) {
                 calibratingData = mCalibratingDataMap.get(GyroData.class);
+                if (UhAccessHelper.isEnableDebug()) {
+                    LogUtil.d(TAG, "Calibrating: calibratingData = " + calibratingData);
+                }
                 GyroData gyroData = (GyroData) sensorData;
                 int baseIndex = AccelerationData.ACCELERATION_NUM + GyroData.SEPARATE_DATA_NUM;
                 Float[] rawValueArray = new Float[GyroData.ACCELERATION_GYRO_NUM - baseIndex];
@@ -200,7 +203,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
                     calibratingData.count = 1;
                     calibratingData.enoughCount = true;
                 }
-            } else if (sensorData instanceof QuaternionData) {
+            } else if (QuaternionData.IS_SUPPORT_CALIBRATION && sensorData instanceof QuaternionData) {
                 calibratingData = mCalibratingDataMap.get(QuaternionData.class);
                 QuaternionData quaternionData = (QuaternionData) sensorData;
 
@@ -218,7 +221,7 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
                     calibratingData.enoughCount = true;
                 }
 
-            } else if (sensorData instanceof AngleData) {
+            } else if (AngleData.IS_SUPPORT_CALIBRATION && sensorData instanceof AngleData) {
                 AngleData angleData = (AngleData) sensorData;
 
                 for (int i = 1; i < mAngleFlatSize; i++) {
@@ -289,6 +292,9 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
                 mCalibratingDataMap.put(QuaternionData.class, new CalibratingData());
             }
 
+            if(UhAccessHelper.isEnableDebug()){
+                LogUtil.d(TAG, "start calibration: " + mCalibrationCondition);
+            }
             mUhAccessHelper.startPollingSensor(UhCalibrator.this, pollingSensors);
             mOnetimeSemaphore.initialize();
             mOnetimeSemaphore.start();
@@ -299,6 +305,9 @@ class UhCalibrator implements UhAccessHelper.OnSensorPollingListener {
                 }
             } else {
                 mResultStatus = CalibrationStatus.CalibrateFail;
+            }
+            if(UhAccessHelper.isEnableDebug()){
+                LogUtil.d(TAG, "end calibration: " + mCalibrationCondition);
             }
 
             ThreadUtil.runOnMainThread(mContext, new Runnable() {
