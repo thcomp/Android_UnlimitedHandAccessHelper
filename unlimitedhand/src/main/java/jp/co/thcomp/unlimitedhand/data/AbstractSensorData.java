@@ -31,7 +31,9 @@ public abstract class AbstractSensorData<DataType> {
         }
 
         for (int i = 0, size = channelData.length; i < size; i++) {
-            channelData[i] = new String(srcSensorData.channelData[i]);
+            if (srcSensorData.channelData[i] != null) {
+                channelData[i] = new String(srcSensorData.channelData[i]);
+            }
         }
     }
 
