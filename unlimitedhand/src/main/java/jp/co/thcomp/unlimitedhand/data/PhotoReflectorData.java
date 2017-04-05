@@ -6,6 +6,14 @@ public class PhotoReflectorData extends AbstractSensorIntegerData {
     public static final boolean IS_SUPPORT_CALIBRATION = true;
     public static final int PHOTO_REFLECTOR_NUM = 8;
 
+    public PhotoReflectorData() {
+        super();
+    }
+
+    public PhotoReflectorData(AbstractSensorData srcSensorData) {
+        super(srcSensorData);
+    }
+
     @Override
     public int getSensorNum() {
         return PHOTO_REFLECTOR_NUM;
@@ -17,7 +25,7 @@ public class PhotoReflectorData extends AbstractSensorIntegerData {
     }
 
     @Override
-    protected String getRawDataSeparator() {
+    public String getRawDataSeparator() {
         return "_";
     }
 

@@ -24,19 +24,24 @@ public class VoltageData extends AbstractSensorIntegerData {
     @Override
     public boolean expandRawData(byte[] rawData) {
         boolean ret = true;
-        String[] rawDataSplitArray = new String(rawData).split(",");
 
-        if(rawDataSplitArray.length > 0){
-            rawDataSplitArray = rawDataSplitArray[0].split(":");
-            if(rawDataSplitArray.length > 1){
-                try {
-                    channelData[0] = rawDataSplitArray[1];
-                } catch (ArrayIndexOutOfBoundsException e) {
-                    channelData[0] = null;
-                } catch (Exception e) {
-                    ret = false;
+        if (rawData != null) {
+            String[] rawDataSplitArray = new String(rawData).split(",");
+
+            if (rawDataSplitArray.length > 0) {
+                rawDataSplitArray = rawDataSplitArray[0].split(":");
+                if (rawDataSplitArray.length > 1) {
+                    try {
+                        channelData[0] = rawDataSplitArray[1];
+                    } catch (ArrayIndexOutOfBoundsException e) {
+                        channelData[0] = null;
+                    } catch (Exception e) {
+                        ret = false;
+                    }
                 }
             }
+        } else {
+            ret = false;
         }
 
         return ret;

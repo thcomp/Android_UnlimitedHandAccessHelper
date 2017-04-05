@@ -47,6 +47,7 @@ public class UhAccessHelper {
 
     public static void enableDebug(boolean enable) {
         sDebug = enable;
+        BluetoothAccessHelper.enableDebug(enable);
     }
 
     public static boolean isEnableDebug() {
@@ -66,38 +67,44 @@ public class UhAccessHelper {
     }
 
     public enum SendCommand {
-        Vibrate("b"),
-        EMS_Pad0("0"),
-        EMS_Pad1("1"),
-        EMS_Pad2("2"),
-        EMS_Pad3("3"),
-        EMS_Pad4("4"),
-        EMS_Pad5("5"),
-        EMS_Pad6("6"),
-        EMS_Pad7("7"),
-        PhotoSensor("c"),
-        Angle("A"),
-        Temperature("A"),
-        Acceleration("a"),
-        Gyro("a"),
-        Quaternion("q"),
-        UpSharpnessLevel("t"),
-        DownSharpnessLevel("u"),
-        UpVoltageLevel("h"),
-        DownVoltageLevel("l"),;
+        Vibrate("b", 0),
+        EMS_Pad0("0", 0),
+        EMS_Pad1("1", 0),
+        EMS_Pad2("2", 0),
+        EMS_Pad3("3", 0),
+        EMS_Pad4("4", 0),
+        EMS_Pad5("5", 0),
+        EMS_Pad6("6", 0),
+        EMS_Pad7("7", 0),
+        PhotoSensor("c", Integer.parseInt("000001", 2)),
+        Angle("A", Integer.parseInt("000010", 2)),
+        Temperature("A", 0),
+        Acceleration("a", Integer.parseInt("000100", 2)),
+        Gyro("a", Integer.parseInt("001000", 2)),
+        Quaternion("q", Integer.parseInt("010000", 2)),
+        UpSharpnessLevel("t", 0),
+        DownSharpnessLevel("u", 0),
+        UpVoltageLevel("h", 0),
+        DownVoltageLevel("l", 0),;
 
         private String mCode;
+        private int mMultiCmdBit = 0;
 
-        SendCommand(String code) {
+        SendCommand(String code, int multiCmdBit) {
             mCode = code;
+            mMultiCmdBit = multiCmdBit;
         }
 
         byte[] getLineCode() {
-            return (mCode + LINE_SEPARATOR).getBytes();
+            return getCode();
         }
 
         byte[] getCode() {
             return mCode.getBytes();
+        }
+
+        int getMultiCommandbit() {
+            return mMultiCmdBit;
         }
     }
 
@@ -112,7 +119,7 @@ public class UhAccessHelper {
         PR_7,
     }
 
-    public enum Axis{
+    public enum Axis {
         X,
         Y,
         Z,
@@ -266,6 +273,10 @@ public class UhAccessHelper {
                 mCalibrator = null;
             }
         }
+    }
+
+    public boolean isCalibrated(CalibrationCondition condition) {
+        return mCalibrationDataMap.containsKey(condition);
     }
 
     public void setPollingRatePerSecond(int pollingRatePerSecond) {
@@ -454,6 +465,82 @@ public class UhAccessHelper {
         }
 
         return ret;
+    }
+
+    /**
+     * 複数センサー読み込み
+     *
+     * @param cmdBitFlag
+     * @param photoReflectorData
+     * @param angleData
+     * @param accelerationData
+     * @param gyroData
+     * @param quaternionData
+     * @return
+     */
+    protected int readAnySensor(byte cmdBitFlag, PhotoReflectorData photoReflectorData, AngleData angleData, AccelerationData accelerationData, GyroData gyroData, QuaternionData quaternionData) {
+        int retFlag = 0;
+
+        if (cmdBitFlag > 0) {
+            switch (mAccessStatus) {
+                case PairedUnlimitedHand:
+                case ConnectedUnlimitedHand:
+                    mSendSemaphore.initialize();
+                    if (mBTAccessHelper.sendData(BluetoothAccessHelper.BT_SERIAL_PORT, mUnlimitedHand, new byte[]{cmdBitFlag})) {
+                        mSendSemaphore.start();
+
+                        byte[] rawData = readData();
+
+                        if (rawData != null && rawData.length > 0) {
+                            String responseData = new String(rawData);
+                            String[] eachCmdResponseDataArray = responseData.split("_");
+
+                            for (String cmdResponseData : eachCmdResponseDataArray) {
+                                if (cmdResponseData != null && cmdResponseData.length() > 0) {
+                                    String[] keyValueArray = cmdResponseData.split(":");
+                                    if (keyValueArray != null && keyValueArray.length >= 2) {
+                                        AbstractSensorData sensorData = null;
+                                        int multiCmdBit = 0;
+
+                                        switch (keyValueArray[0]) {
+                                            case "PR":
+                                                sensorData = photoReflectorData;
+                                                multiCmdBit = SendCommand.PhotoSensor.getMultiCommandbit();
+                                                break;
+                                            case "ANGLE":
+                                                sensorData = angleData;
+                                                multiCmdBit = SendCommand.Angle.getMultiCommandbit();
+                                                break;
+                                            case "ACCEL":
+                                                sensorData = accelerationData;
+                                                multiCmdBit = SendCommand.Acceleration.getMultiCommandbit();
+                                                break;
+                                            case "GYRO":
+                                                sensorData = gyroData;
+                                                multiCmdBit = SendCommand.Gyro.getMultiCommandbit();
+                                                break;
+                                            case "QUAT":
+                                                sensorData = quaternionData;
+                                                multiCmdBit = SendCommand.Quaternion.getMultiCommandbit();
+                                                break;
+                                        }
+
+                                        if (sensorData != null) {
+                                            keyValueArray[1] = keyValueArray[1].replaceAll(",", sensorData.getRawDataSeparator());
+                                            if (sensorData.expandRawData(keyValueArray[1].getBytes())) {
+                                                retFlag |= multiCmdBit;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+
+        return retFlag;
     }
 
     public boolean vibrate() {
@@ -725,40 +812,55 @@ public class UhAccessHelper {
             QuaternionData quaternionData = new QuaternionData();
             ArrayList<AbstractSensorData> retList = new ArrayList<>();
 
+            if (isEnableDebug()) {
+                LogUtil.d(TAG, "start sensor polling");
+            }
+
             while (mSensorPollingThread != null) {
                 long startTimeMS = System.currentTimeMillis();
                 long intervalMS = 1000 / mPollingRatePerSecond;
                 int pollingTargetFlag = mPollingTargetFlag;
+                byte uhCommandBitFlag = 0;
+                int multiCmdRet = 0;
 
                 retList.clear();
 
-                if ((pollingTargetFlag & POLLING_PHOTO_REFLECTOR) == POLLING_PHOTO_REFLECTOR) {
-                    if (readPhotoReflector(photoReflectorData)) {
-                        retList.add(photoReflectorData);
-                    }
-                }
-                if ((pollingTargetFlag & POLLING_ANGLE) == POLLING_ANGLE) {
-                    if (readAngle(angleData)) {
-                        retList.add(angleData);
-                    }
-                }
                 if ((pollingTargetFlag & POLLING_TEMPERATURE) == POLLING_TEMPERATURE) {
                     if (readTemperature(temperatureData)) {
                         retList.add(temperatureData);
                     }
                 }
+                if ((pollingTargetFlag & POLLING_PHOTO_REFLECTOR) == POLLING_PHOTO_REFLECTOR) {
+                    uhCommandBitFlag |= SendCommand.PhotoSensor.getMultiCommandbit();
+                }
+                if ((pollingTargetFlag & POLLING_ANGLE) == POLLING_ANGLE) {
+                    uhCommandBitFlag |= SendCommand.Angle.getMultiCommandbit();
+                }
                 if ((pollingTargetFlag & POLLING_ACCELERATION) == POLLING_ACCELERATION) {
-                    if (readAcceleration(accelerationData)) {
-                        retList.add(accelerationData);
-                    }
+                    uhCommandBitFlag |= SendCommand.Acceleration.getMultiCommandbit();
                 }
                 if ((pollingTargetFlag & POLLING_GYRO) == POLLING_GYRO) {
-                    if (readGyro(gyroData)) {
-                        retList.add(gyroData);
-                    }
+                    uhCommandBitFlag |= SendCommand.Gyro.getMultiCommandbit();
                 }
                 if ((pollingTargetFlag & POLLING_QUATERNION) == POLLING_QUATERNION) {
-                    if (readQuaternion(quaternionData)) {
+                    uhCommandBitFlag |= SendCommand.Quaternion.getMultiCommandbit();
+                }
+
+                if (uhCommandBitFlag > 0) {
+                    multiCmdRet = readAnySensor(uhCommandBitFlag, photoReflectorData, angleData, accelerationData, gyroData, quaternionData);
+                    if ((multiCmdRet & SendCommand.PhotoSensor.getMultiCommandbit()) > 0) {
+                        retList.add(photoReflectorData);
+                    }
+                    if ((multiCmdRet & SendCommand.Angle.getMultiCommandbit()) > 0) {
+                        retList.add(angleData);
+                    }
+                    if ((multiCmdRet & SendCommand.Acceleration.getMultiCommandbit()) > 0) {
+                        retList.add(accelerationData);
+                    }
+                    if ((multiCmdRet & SendCommand.Gyro.getMultiCommandbit()) > 0) {
+                        retList.add(gyroData);
+                    }
+                    if ((multiCmdRet & SendCommand.Quaternion.getMultiCommandbit()) > 0) {
                         retList.add(quaternionData);
                     }
                 }
@@ -778,6 +880,10 @@ public class UhAccessHelper {
                     } catch (InterruptedException e) {
                     }
                 }
+            }
+
+            if (isEnableDebug()) {
+                LogUtil.d(TAG, "end sensor polling");
             }
         }
     };

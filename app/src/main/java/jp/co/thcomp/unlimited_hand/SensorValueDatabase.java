@@ -73,7 +73,6 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
         // default data
         queryBuilder.append(COLUMN_CDATE).append(" integer primary key, ").append(COLUMN_DESCRIPTION).append(" text");
 
-        boolean isSupportCalibration = false;
         Integer dataSensorNum = null;
         Method getSensorNumMethod = null;
         Method isSupportCalibrationMethod = null;
@@ -84,9 +83,7 @@ public class SensorValueDatabase extends SQLiteOpenHelper {
             instance = constructor.newInstance();
 
             getSensorNumMethod = baseDataClass.getMethod("getSensorNum");
-            isSupportCalibrationMethod = baseDataClass.getMethod("isSupportCalibration");
             dataSensorNum = (int) getSensorNumMethod.invoke(instance);
-            isSupportCalibration = (boolean) isSupportCalibrationMethod.invoke(instance);
         } catch (Exception e) {
         }
 
