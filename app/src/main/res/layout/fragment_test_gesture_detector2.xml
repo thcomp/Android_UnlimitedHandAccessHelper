@@ -5,9 +5,38 @@
             tools:context="jp.co.thcomp.unlimited_hand.fragment.TestGestureDetectorFragment">
 
     <LinearLayout
+        android:id="@+id/llCombineSensorDataCountArea"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:weightSum="1.0"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etCombineSensorDataCount"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:layout_weight="1.0"/>
+            <Button
+                android:id="@+id/btnUpdateCombineSensorDataCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="update"/>
+        </LinearLayout>
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="16dp" />
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/llPrepareInformationArea"
+        android:layout_below="@id/llCombineSensorDataCountArea"
         android:layout_centerHorizontal="true"
         android:orientation="horizontal">
 

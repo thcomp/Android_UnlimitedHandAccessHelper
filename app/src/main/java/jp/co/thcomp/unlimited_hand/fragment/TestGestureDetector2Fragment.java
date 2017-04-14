@@ -1,14 +1,12 @@
 package jp.co.thcomp.unlimited_hand.fragment;
 
 
-import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 
-import jp.co.thcomp.unlimited_hand.Common;
 import jp.co.thcomp.unlimited_hand.R;
 import jp.co.thcomp.unlimitedhand.UhGestureDetector;
 import jp.co.thcomp.unlimitedhand.UhGestureDetector2;
@@ -17,6 +15,7 @@ import jp.co.thcomp.util.PreferenceUtil;
 
 public class TestGestureDetector2Fragment extends AbstractTestFragment {
     private static final String TAG = TestGestureDetector2Fragment.class.getSimpleName();
+    private static final String PREF_INT_COMBINE_SENSOR_DATA_COUNT = "PREF_INT_COMBINE_SENSOR_DATA_COUNT";
 
     private enum DefaultMlAsset {
         RightArm(UhGestureDetector.WearDevice.RightArm, "defaultPb/right_arm/saved_data.pb"),
@@ -53,7 +52,8 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mUhGestureDetector = new UhGestureDetector2(getActivity(), mUHAccessHelper, DefaultMlAsset.RightArm.wearDevice, DefaultMlAsset.RightArm.mlAsset);
+        int combineSensorDataCount = PreferenceUtil.readPrefInt(getActivity(), PREF_INT_COMBINE_SENSOR_DATA_COUNT, 1);
+        mUhGestureDetector = new UhGestureDetector2(getActivity(), mUHAccessHelper, DefaultMlAsset.RightArm.wearDevice, DefaultMlAsset.RightArm.mlAsset, combineSensorDataCount);
         mUhGestureDetector.setFingerStatusListener(mGestureListener);
         mUhGestureDetector.startListening();
     }
@@ -68,6 +68,12 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         mRootView = super.onCreateView(inflater, container, savedInstanceState);
+
+        int combineSensorDataCount = PreferenceUtil.readPrefInt(getActivity(), PREF_INT_COMBINE_SENSOR_DATA_COUNT, 1);
+        EditText etCombineSensorData = (EditText) mRootView.findViewById(R.id.etCombineSensorDataCount);
+        etCombineSensorData.setText(String.valueOf(combineSensorDataCount));
+        mRootView.findViewById(R.id.btnUpdateCombineSensorDataCount).setOnClickListener(mClickListener);
+
         return mRootView;
     }
 
@@ -82,6 +88,14 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
         super.onPause();
 
         mUhGestureDetector.stopListening();
+
+        EditText etCombineSensorData = (EditText) mRootView.findViewById(R.id.etCombineSensorDataCount);
+        try {
+            int combineSensorDataCount = Integer.valueOf(etCombineSensorData.getText().toString());
+            PreferenceUtil.writePref(getActivity(), PREF_INT_COMBINE_SENSOR_DATA_COUNT, combineSensorDataCount);
+        } catch (NumberFormatException e) {
+            // 処理なし
+        }
     }
 
     private UhGestureDetector.OnFingerStatusListener mGestureListener = new UhGestureDetector.OnFingerStatusListener() {
@@ -116,6 +130,26 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
                         mRootView.findViewById(allFingerResId[i][0]).setVisibility(View.VISIBLE);
                         mRootView.findViewById(allFingerResId[i][1]).setVisibility(View.INVISIBLE);
                         break;
+                }
+            }
+        }
+    };
+
+    private View.OnClickListener mClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            int id = v.getId();
+
+            if (id == R.id.btnUpdateCombineSensorDataCount) {
+                EditText etCombineSensorData = (EditText) mRootView.findViewById(R.id.etCombineSensorDataCount);
+                try {
+                    int combineSensorDataCount = Integer.valueOf(etCombineSensorData.getText().toString());
+                    mUhGestureDetector.stopListening();
+                    mUhGestureDetector = new UhGestureDetector2(getActivity(), mUHAccessHelper, DefaultMlAsset.RightArm.wearDevice, DefaultMlAsset.RightArm.mlAsset, combineSensorDataCount);
+                    mUhGestureDetector.setFingerStatusListener(mGestureListener);
+                    mUhGestureDetector.startListening();
+                } catch (NumberFormatException e) {
+                    // 処理なし
                 }
             }
         }

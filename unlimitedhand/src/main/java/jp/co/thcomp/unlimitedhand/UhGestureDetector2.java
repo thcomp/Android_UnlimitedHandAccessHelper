@@ -4,6 +4,8 @@ import android.content.Context;
 
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
+import java.util.ArrayList;
+
 import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
 import jp.co.thcomp.unlimitedhand.data.AccelerationData;
 import jp.co.thcomp.unlimitedhand.data.GyroData;
@@ -20,18 +22,19 @@ public class UhGestureDetector2 {
     }
 
     public static final int DEFAULT_CALIBRATE_RATE_PER_SECOND = 30;
-    private static final int DEFAULT_DETECT_THRESHOLD = 10;
-    private static final String TAG = UhGestureDetector.class.getSimpleName();
+    private static final String TAG = UhGestureDetector2.class.getSimpleName();
 
     private Context mContext;
     private UhAccessHelper mUhAccessHelper;
     private UhGestureDetector.OnFingerStatusListener mOnFingerStatusListener;
     private GestureDetector mGestureDetector = new GestureDetector();
     private UhGestureDetector.WearDevice mWearDevice = UhGestureDetector.WearDevice.RightArm;
+    private int mCombineSensorDataCount = 1;
     private long mNotifyIndex = 0;
     private TensorFlowInferenceInterface mInterface;
+    private ArrayList<AbstractSensorData[]> mCombineSensorDatasList = new ArrayList<AbstractSensorData[]>();
 
-    public UhGestureDetector2(Context context, UhAccessHelper uhAccessHelper, UhGestureDetector.WearDevice wearDevice, String mlPbFile) {
+    public UhGestureDetector2(Context context, UhAccessHelper uhAccessHelper, UhGestureDetector.WearDevice wearDevice, String mlPbFile, int combineSensorDataCount) {
         if (context == null) {
             throw new NullPointerException("context == null");
         }
@@ -41,10 +44,14 @@ public class UhGestureDetector2 {
         if (wearDevice == null) {
             throw new NullPointerException("wearDevice == null");
         }
+        if (combineSensorDataCount <= 0) {
+            throw new IllegalArgumentException("combineSensorDataCount = " + combineSensorDataCount);
+        }
 
         mContext = context;
         mUhAccessHelper = uhAccessHelper;
         mWearDevice = wearDevice;
+        mCombineSensorDataCount = combineSensorDataCount;
 
         // TensorFlow_NightlyBuild
         mInterface = new TensorFlowInferenceInterface(context.getAssets(), "file:///android_asset/" + mlPbFile);
@@ -63,6 +70,7 @@ public class UhGestureDetector2 {
 
     public void startListening() {
         if (!mGestureDetector.isListening()) {
+            mCombineSensorDatasList.clear();
             mGestureDetector.startGestureListening();
         }
     }
@@ -144,72 +152,79 @@ public class UhGestureDetector2 {
                 }
 
                 if ((fingerStatusListener != null) && (photoReflectorData != null) && (accelerationData != null) && (gyroData != null)) {
-                    final AbstractSensorData[] fSensorDataArray = {
-                            accelerationData,
-                            gyroData,
-                            photoReflectorData,
-                    };
-                    final int[] fSensorDataCountArray = {
-                            AccelerationData.ACCELERATION_NUM,
-                            GyroData.GYRO_NUM,
-                            PhotoReflectorData.PHOTO_REFLECTOR_NUM,
-                    };
+                    mCombineSensorDatasList.add(new AbstractSensorData[]{accelerationData, gyroData, photoReflectorData});
 
-                    ThreadUtil.runOnWorkThread(mContext, new Runnable() {
-                        @Override
-                        public void run() {
-                            // create data
-                            float[] sensorValueArray = new float[AccelerationData.ACCELERATION_NUM + GyroData.GYRO_NUM + PhotoReflectorData.PHOTO_REFLECTOR_NUM];
-                            int dataPosition = 0;
-                            for (int i = 0, sizeI = fSensorDataArray.length; i < sizeI; i++) {
-                                for (int j = 0; j < fSensorDataCountArray[i]; j++) {
-                                    Object tempValue = fSensorDataArray[i].getRawValue(j);
-                                    if (tempValue instanceof Integer) {
-                                        sensorValueArray[dataPosition] = (int) tempValue;
-                                    } else if (tempValue instanceof Float) {
-                                        sensorValueArray[dataPosition] = (float) tempValue;
+                    if (mCombineSensorDatasList.size() >= mCombineSensorDataCount) {
+                        final int[] fSensorDataCountArray = {
+                                AccelerationData.ACCELERATION_NUM,
+                                GyroData.GYRO_NUM,
+                                PhotoReflectorData.PHOTO_REFLECTOR_NUM,
+                        };
+                        ThreadUtil.runOnWorkThread(mContext, new Runnable() {
+                            @Override
+                            public void run() {
+                                float[] sensorValueArray = new float[(AccelerationData.ACCELERATION_NUM + GyroData.GYRO_NUM + PhotoReflectorData.PHOTO_REFLECTOR_NUM) * mCombineSensorDataCount];
+
+                                synchronized (UhGestureDetector2.this) {
+                                    // create data
+                                    int dataPosition = 0;
+                                    for (int i = 0; i < mCombineSensorDataCount; i++) {
+                                        AbstractSensorData[] tempSensorDataArray = mCombineSensorDatasList.get(i);
+                                        for (int j = 0, sizeJ = tempSensorDataArray.length; j < sizeJ; j++) {
+                                            for (int k = 0; k < fSensorDataCountArray[j]; k++) {
+                                                Object tempValue = tempSensorDataArray[j].getRawValue(k);
+                                                if (tempValue instanceof Integer) {
+                                                    sensorValueArray[dataPosition] = (int) tempValue;
+                                                } else if (tempValue instanceof Float) {
+                                                    sensorValueArray[dataPosition] = (float) tempValue;
+                                                }
+                                                dataPosition++;
+                                            }
+                                        }
                                     }
-                                    dataPosition++;
+
+                                    // 先頭のデータは使用済みのため削除
+                                    mCombineSensorDatasList.remove(0);
+                                }
+
+                                try {
+                                    float[] inferenceResult = new float[(int) Math.pow(2, 5)];
+                                    // TensorFlow_NightlyBuild
+                                    mInterface.feed(INPUT_SENSOR_NAME, sensorValueArray, 1, sensorValueArray.length);
+                                    mInterface.run(new String[]{OUTPUT_GESTURE_NAME});
+                                    mInterface.fetch(OUTPUT_GESTURE_NAME, inferenceResult);
+                                    // TensorFlow_r1.0
+                                    //mInterface.fillNodeFloat(INPUT_SENSOR_NAME, new int[]{1, sensorValueArray.length}, sensorValueArray);
+                                    //mInterface.runInference(new String[]{OUTPUT_GESTURE_NAME});
+                                    //mInterface.readNodeFloat(OUTPUT_GESTURE_NAME, inferenceResult);
+
+                                    // 最も確率の高い値を選択
+                                    int highestValue = getMostProbabilityValue(inferenceResult);
+                                    int fingerConditionCount = UhGestureDetector.FingerCondition.values().length;
+                                    final HandData fHandData = new HandData(UhGestureDetector.FingerCondition.Straight);
+                                    int thumbCondition = (highestValue % (int) Math.pow(fingerConditionCount, 1));
+                                    int indexCondition = (highestValue % (int) Math.pow(fingerConditionCount, 2)) / (int) Math.pow(fingerConditionCount, 1);
+                                    int middleCondition = (highestValue % (int) Math.pow(fingerConditionCount, 3)) / (int) Math.pow(fingerConditionCount, 2);
+                                    int ringCondition = (highestValue % (int) Math.pow(fingerConditionCount, 4)) / (int) Math.pow(fingerConditionCount, 3);
+                                    int pinkyCondition = (highestValue % (int) Math.pow(fingerConditionCount, 5)) / (int) Math.pow(fingerConditionCount, 4);
+
+                                    fHandData.thumb = getFingerCondition(thumbCondition);
+                                    fHandData.index = getFingerCondition(indexCondition);
+                                    fHandData.middle = getFingerCondition(middleCondition);
+                                    fHandData.ring = getFingerCondition(ringCondition);
+                                    fHandData.pinky = getFingerCondition(pinkyCondition);
+                                    ThreadUtil.runOnMainThread(mContext, new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            fingerStatusListener.onFingerStatusChanged(mWearDevice, mNotifyIndex++, fHandData);
+                                        }
+                                    });
+                                } catch (Exception e) {
+                                    // 処理なし
                                 }
                             }
-
-                            try {
-                                float[] inferenceResult = new float[(int) Math.pow(2, 5)];
-                                // TensorFlow_NightlyBuild
-                                mInterface.feed(INPUT_SENSOR_NAME, sensorValueArray, 1, sensorValueArray.length);
-                                mInterface.run(new String[]{OUTPUT_GESTURE_NAME});
-                                mInterface.fetch(OUTPUT_GESTURE_NAME, inferenceResult);
-                                // TensorFlow_r1.0
-                                //mInterface.fillNodeFloat(INPUT_SENSOR_NAME, new int[]{1, sensorValueArray.length}, sensorValueArray);
-                                //mInterface.runInference(new String[]{OUTPUT_GESTURE_NAME});
-                                //mInterface.readNodeFloat(OUTPUT_GESTURE_NAME, inferenceResult);
-
-                                // 最も確率の高い値を選択
-                                int highestValue = getMostProbabilityValue(inferenceResult);
-                                int fingerConditionCount = UhGestureDetector.FingerCondition.values().length;
-                                final HandData fHandData = new HandData(UhGestureDetector.FingerCondition.Straight);
-                                int thumbCondition = (highestValue % (int) Math.pow(fingerConditionCount, 1));
-                                int indexCondition = (highestValue % (int) Math.pow(fingerConditionCount, 2)) / (int) Math.pow(fingerConditionCount, 1);
-                                int middleCondition = (highestValue % (int) Math.pow(fingerConditionCount, 3)) / (int) Math.pow(fingerConditionCount, 2);
-                                int ringCondition = (highestValue % (int) Math.pow(fingerConditionCount, 4)) / (int) Math.pow(fingerConditionCount, 3);
-                                int pinkyCondition = (highestValue % (int) Math.pow(fingerConditionCount, 5)) / (int) Math.pow(fingerConditionCount, 4);
-
-                                fHandData.thumb = getFingerCondition(thumbCondition);
-                                fHandData.index = getFingerCondition(indexCondition);
-                                fHandData.middle = getFingerCondition(middleCondition);
-                                fHandData.ring = getFingerCondition(ringCondition);
-                                fHandData.pinky = getFingerCondition(pinkyCondition);
-                                ThreadUtil.runOnMainThread(mContext, new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        fingerStatusListener.onFingerStatusChanged(mWearDevice, mNotifyIndex++, fHandData);
-                                    }
-                                });
-                            } catch (Exception e) {
-                                // 処理なし
-                            }
-                        }
-                    });
+                        });
+                    }
                 }
             }
         }
