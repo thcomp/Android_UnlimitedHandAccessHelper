@@ -1,8 +1,8 @@
 <component name="libraryTable">
   <library name="android_baseactivity-0.0.2">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/unlimitedhand/build/intermediates/exploded-aar/jp.co.thcomp/android_baseactivity/0.0.2/jars/classes.jar!/" />
-      <root url="file://$PROJECT_DIR$/unlimitedhand/build/intermediates/exploded-aar/jp.co.thcomp/android_baseactivity/0.0.2/res" />
+      <root url="file://$USER_HOME$/.android/build-cache/e238f1029f972d46b80fe54991cdec6392226e8d/output/res" />
+      <root url="jar://$USER_HOME$/.android/build-cache/e238f1029f972d46b80fe54991cdec6392226e8d/output/jars/classes.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

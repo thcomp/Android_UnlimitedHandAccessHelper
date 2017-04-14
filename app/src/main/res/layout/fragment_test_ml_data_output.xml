@@ -88,12 +88,58 @@
             android:layout_height="wrap_content"
             android:text="start to read sensor"/>
 
-        <EditText
-            android:id="@+id/etFingerValue"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number"
-            android:hint="00000 - 44444(0: Straight, 4: Curve)"/>
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="0: Straight, 1: Soft Curve, 2: Hard Curve"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:weightSum="1.0"
+                android:orientation="horizontal">
+                <EditText
+                    android:id="@+id/etPinkeyValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.2"
+                    android:inputType="number"
+                    android:hint="pinkey"/>
+                <EditText
+                    android:id="@+id/etRingValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.2"
+                    android:inputType="number"
+                    android:hint="ring"/>
+                <EditText
+                    android:id="@+id/etMiddleValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.2"
+                    android:inputType="number"
+                    android:hint="middle"/>
+                <EditText
+                    android:id="@+id/etIndexValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.2"
+                    android:inputType="number"
+                    android:hint="index"/>
+                <EditText
+                    android:id="@+id/etThumbValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.2"
+                    android:inputType="number"
+                    android:hint="thumb"/>
+            </LinearLayout>
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/llStopInputArea"

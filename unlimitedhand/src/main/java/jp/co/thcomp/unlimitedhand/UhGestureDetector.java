@@ -31,8 +31,15 @@ public class UhGestureDetector {
 
     public enum FingerCondition {
         Straight,
-        SoftCurve,
-        HardCurve,
+        //SoftCurve,
+        HardCurve;
+
+        static FingerCondition[] valuesReverse() {
+            return new FingerCondition[]{
+                    HardCurve,
+                    //SoftCurve,
+                    Straight};
+        }
     }
 
     private enum PRValuePhase {
@@ -484,10 +491,10 @@ public class UhGestureDetector {
                             switch (calibrationCondition.handStatus) {
                                 case HandClose:
                                 case PickObject:
-                                    handData = detectGesture(photoReflectorData, calibrationData, oppositeCalibrationData, new FingerCondition[]{FingerCondition.HardCurve, FingerCondition.SoftCurve, FingerCondition.Straight});
+                                    handData = detectGesture(photoReflectorData, calibrationData, oppositeCalibrationData, FingerCondition.valuesReverse());
                                     break;
                                 case HandOpen:
-                                    handData = detectGesture(photoReflectorData, calibrationData, oppositeCalibrationData, new FingerCondition[]{FingerCondition.Straight, FingerCondition.SoftCurve, FingerCondition.HardCurve});
+                                    handData = detectGesture(photoReflectorData, calibrationData, oppositeCalibrationData, FingerCondition.values());
                                     break;
                             }
 
