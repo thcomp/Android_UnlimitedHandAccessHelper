@@ -47,6 +47,7 @@ import jp.co.thcomp.util.ThreadUtil;
 import jp.co.thcomp.util.ToastUtil;
 
 public class TestMLDataOutputFragment extends AbstractTestFragment {
+    private static final int MAX_SUPPORT_FINGER_CONDITION = UhGestureDetector.FingerCondition.HardCurve.ordinal();
     private static final String TAG = TestMLDataOutputFragment.class.getSimpleName();
     private static final String TEMPORARY_ZIP_FILE = "sensor_data_%1$04d%2$02d%3$02d_%4$02d%5$02d%6$02d.gzip";
     private static final String PREF_LAST_MAIL_ADDRESS = "PREF_LAST_MAIL_ADDRESS";
@@ -85,7 +86,11 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
 
     private MLSensorValueDatabase mDatabase;
     private ReadInputSensorTask mReadInputSensorTask;
-    private EditText mFingerValue;
+    private EditText mThumbValue;
+    private EditText mIndexValue;
+    private EditText mMiddleValue;
+    private EditText mRingValue;
+    private EditText mPinkeyValue;
     private EditText mAddress;
     private TextView[][] mTvReadSensorValues = {
             new TextView[PhotoReflectorData.PHOTO_REFLECTOR_NUM],
@@ -131,7 +136,11 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
         // Inflate the layout for this fragment
         mRootView = super.onCreateView(inflater, container, savedInstanceState);
 
-        mFingerValue = (EditText) mRootView.findViewById(R.id.etFingerValue);
+        mThumbValue = (EditText) mRootView.findViewById(R.id.etThumbValue);
+        mIndexValue = (EditText) mRootView.findViewById(R.id.etIndexValue);
+        mMiddleValue = (EditText) mRootView.findViewById(R.id.etMiddleValue);
+        mRingValue = (EditText) mRootView.findViewById(R.id.etRingValue);
+        mPinkeyValue = (EditText) mRootView.findViewById(R.id.etPinkeyValue);
         mAddress = (EditText) mRootView.findViewById(R.id.etAddress);
         mAddress.setText(PreferenceUtil.readPrefString(getActivity(), PREF_LAST_MAIL_ADDRESS));
         mRootView.findViewById(R.id.btnStartInput).setOnClickListener(mBtnClickListener);
@@ -496,7 +505,7 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
                 readSensorList.add(readSensor.mDataClass);
             }
 
-            mDatabase.clearData(readSensorList.toArray(new Class[0]));
+            mDatabase.clearData();
             return null;
         }
 
@@ -530,7 +539,29 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
                         }
                     }
                 }
-                mlSensorData.label = mFingerValue.getText().toString();
+                String[] fingerValues = {
+                        mThumbValue.getText().toString(),
+                        mIndexValue.getText().toString(),
+                        mMiddleValue.getText().toString(),
+                        mRingValue.getText().toString(),
+                        mPinkeyValue.getText().toString(),
+                };
+                int fingerValueInt = 0;
+
+                // 10進数に変換
+                int fingerConditionCount = MAX_SUPPORT_FINGER_CONDITION + 1;
+                for (int i = 0, size = fingerValues.length; i < size; i++) {
+                    int tempFingerValue = 0;
+                    try {
+                        tempFingerValue = Integer.valueOf(fingerValues[i]);
+                        if (UhGestureDetector.FingerCondition.Straight.ordinal() <= tempFingerValue && tempFingerValue <= MAX_SUPPORT_FINGER_CONDITION) {
+                            fingerValueInt += (Math.pow(fingerConditionCount, i) * tempFingerValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        // 処理なし
+                    }
+                }
+                mlSensorData.label = String.valueOf(fingerValueInt);
 
                 mDatabase.insertData(mlSensorData);
             }
@@ -543,9 +574,8 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
             ArrayList<AbstractSensorData> tempSensorDataList = mSensorDataList;
             for (int i = 0, sizeI = tempSensorDataList.size(); i < sizeI; i++) {
                 AbstractSensorData tempSensorData = tempSensorDataList.get(i);
-
-
                 READ_SENSOR readSensor = null;
+
                 if (tempSensorData instanceof PhotoReflectorData) {
                     readSensor = READ_SENSOR.PHOTO;
                 } else if (tempSensorData instanceof AccelerationData) {

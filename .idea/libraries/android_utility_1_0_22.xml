@@ -1,8 +1,8 @@
 <component name="libraryTable">
   <library name="android_utility-1.0.22">
     <CLASSES>
-      <root url="file://$PROJECT_DIR$/app/build/intermediates/exploded-aar/jp.co.thcomp/android_utility/1.0.22/res" />
-      <root url="jar://$PROJECT_DIR$/app/build/intermediates/exploded-aar/jp.co.thcomp/android_utility/1.0.22/jars/classes.jar!/" />
+      <root url="jar://$USER_HOME$/.android/build-cache/84710fe4f8186ff45510a8bc8d470cff2da6c5c0/output/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.android/build-cache/84710fe4f8186ff45510a8bc8d470cff2da6c5c0/output/res" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
