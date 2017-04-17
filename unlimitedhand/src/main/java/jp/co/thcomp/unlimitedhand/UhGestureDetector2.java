@@ -1,9 +1,11 @@
 package jp.co.thcomp.unlimitedhand;
 
 import android.content.Context;
+import android.os.Environment;
 
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
+import java.io.File;
 import java.util.ArrayList;
 
 import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
@@ -54,10 +56,10 @@ public class UhGestureDetector2 {
         mCombineSensorDataCount = combineSensorDataCount;
 
         // TensorFlow_NightlyBuild
-        mInterface = new TensorFlowInferenceInterface(context.getAssets(), "file:///android_asset/" + mlPbFile);
+        mInterface = new TensorFlowInferenceInterface(context.getAssets(), mlPbFile);
         // TensorFlow_r1.0
         //mInterface = new TensorFlowInferenceInterface();
-        //mInterface.initializeTensorFlow(context.getAssets(), "file:///android_asset/" + mlPbFile);
+        //mInterface.initializeTensorFlow(context.getAssets(), mlPbFile);
     }
 
     public void setFingerStatusListener(UhGestureDetector.OnFingerStatusListener listener) {
