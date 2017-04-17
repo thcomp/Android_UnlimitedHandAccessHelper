@@ -113,13 +113,13 @@ public class MLSensorValueDatabase extends SQLiteOpenHelper {
         return getWritableDatabase().insert(tableName, null, values) == 1;
     }
 
-    public int clearData(Class[] targetTableClassArray) {
+    public int clearData() {
         SQLiteDatabase database = getWritableDatabase();
         int clearDataCount = 0;
 
         database.beginTransaction();
-        for (int i = 0, size = targetTableClassArray.length; i < size; i++) {
-            clearDataCount += database.delete(targetTableClassArray[i].getSimpleName(), null, null);
+        for (Class targetClass : BASE_DATA_CLASS_ARRAY) {
+            clearDataCount += database.delete(targetClass.getSimpleName(), null, null);
         }
         database.setTransactionSuccessful();
         database.endTransaction();

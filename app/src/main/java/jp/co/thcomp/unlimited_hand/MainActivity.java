@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements AbstractTestFragm
             new MenuItem("input", TestInputFragment.class),
             new MenuItem("input ml data", TestMLDataOutputFragment.class),
             new MenuItem("finger status", TestGestureDetectorFragment.class),
-            new MenuItem("angle status", TestGestureDetector2Fragment.class),
+            new MenuItem("finger status 2", TestGestureDetector2Fragment.class),
     };
 
     private UhAccessHelper mUHAccessHelper = null;

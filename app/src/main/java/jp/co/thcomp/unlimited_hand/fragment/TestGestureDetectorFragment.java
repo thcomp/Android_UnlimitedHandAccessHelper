@@ -179,12 +179,12 @@ public class TestGestureDetectorFragment extends AbstractTestFragment {
                         mRootView.findViewById(allFingerResId[i][0]).setVisibility(View.VISIBLE);
                         mRootView.findViewById(allFingerResId[i][1]).setVisibility(View.VISIBLE);
                         break;
-                    case SoftCurve:
-                        mRootView.findViewById(allFingerResId[i][0]).setVisibility(View.VISIBLE);
-                        mRootView.findViewById(allFingerResId[i][1]).setVisibility(View.INVISIBLE);
-                        break;
                     case HardCurve:
                         mRootView.findViewById(allFingerResId[i][0]).setVisibility(View.INVISIBLE);
+                        mRootView.findViewById(allFingerResId[i][1]).setVisibility(View.INVISIBLE);
+                        break;
+                    default:    // SoftCurve
+                        mRootView.findViewById(allFingerResId[i][0]).setVisibility(View.VISIBLE);
                         mRootView.findViewById(allFingerResId[i][1]).setVisibility(View.INVISIBLE);
                         break;
                 }
