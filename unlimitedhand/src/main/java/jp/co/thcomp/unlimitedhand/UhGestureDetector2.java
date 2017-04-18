@@ -1,11 +1,9 @@
 package jp.co.thcomp.unlimitedhand;
 
 import android.content.Context;
-import android.os.Environment;
 
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
-import java.io.File;
 import java.util.ArrayList;
 
 import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
@@ -13,11 +11,13 @@ import jp.co.thcomp.unlimitedhand.data.AccelerationData;
 import jp.co.thcomp.unlimitedhand.data.GyroData;
 import jp.co.thcomp.unlimitedhand.data.HandData;
 import jp.co.thcomp.unlimitedhand.data.PhotoReflectorData;
+import jp.co.thcomp.util.LogUtil;
 import jp.co.thcomp.util.ThreadUtil;
 
 public class UhGestureDetector2 {
     private static final String INPUT_SENSOR_NAME = "sensor_values_placeholder:0";
-    private static final String OUTPUT_GESTURE_NAME = "softmax_linear/add:0";
+    private static final String INPUT_LABEL_NAME = "labels_placeholder:0";
+    private static final String OUTPUT_GESTURE_NAME = "eval_correct";
 
     static {
         System.loadLibrary("tensorflow_inference");
@@ -189,19 +189,33 @@ public class UhGestureDetector2 {
                                     mCombineSensorDatasList.remove(0);
                                 }
 
-                                try {
-                                    float[] inferenceResult = new float[(int) Math.pow(2, 5)];
-                                    // TensorFlow_NightlyBuild
-                                    mInterface.feed(INPUT_SENSOR_NAME, sensorValueArray, 1, sensorValueArray.length);
-                                    mInterface.run(new String[]{OUTPUT_GESTURE_NAME});
-                                    mInterface.fetch(OUTPUT_GESTURE_NAME, inferenceResult);
-                                    // TensorFlow_r1.0
-                                    //mInterface.fillNodeFloat(INPUT_SENSOR_NAME, new int[]{1, sensorValueArray.length}, sensorValueArray);
-                                    //mInterface.runInference(new String[]{OUTPUT_GESTURE_NAME});
-                                    //mInterface.readNodeFloat(OUTPUT_GESTURE_NAME, inferenceResult);
+                                int[] inferenceResult = new int[1];
+                                int value = Integer.MIN_VALUE;
+                                boolean successFetch = true;
 
-                                    // 最も確率の高い値を選択
-                                    int highestValue = getMostProbabilityValue(inferenceResult);
+                                for (int i = 0, size = (int) Math.pow(2, 5); i < size; i++) {
+                                    try {
+                                        // TensorFlow_NightlyBuild
+                                        mInterface.feed(INPUT_SENSOR_NAME, sensorValueArray, 1, sensorValueArray.length);
+                                        mInterface.feed(INPUT_LABEL_NAME, new int[]{i}, 1);
+                                        mInterface.run(new String[]{OUTPUT_GESTURE_NAME});
+                                        mInterface.fetch(OUTPUT_GESTURE_NAME, inferenceResult);
+                                        if (inferenceResult[0] != 0) {
+                                            value = i;
+                                            break;
+                                        }
+                                        // TensorFlow_r1.0
+                                        //mInterface.fillNodeFloat(INPUT_SENSOR_NAME, new int[]{1, sensorValueArray.length}, sensorValueArray);
+                                        //mInterface.runInference(new String[]{OUTPUT_GESTURE_NAME});
+                                        //mInterface.readNodeFloat(OUTPUT_GESTURE_NAME, inferenceResult);
+                                    } catch (Exception e) {
+                                        successFetch = false;
+                                        LogUtil.exception(TAG, e);
+                                    }
+                                }
+
+                                if (successFetch) {
+                                    int highestValue = value;
                                     int fingerConditionCount = UhGestureDetector.FingerCondition.values().length;
                                     final HandData fHandData = new HandData(UhGestureDetector.FingerCondition.Straight);
                                     int thumbCondition = (highestValue % (int) Math.pow(fingerConditionCount, 1));
@@ -221,8 +235,6 @@ public class UhGestureDetector2 {
                                             fingerStatusListener.onFingerStatusChanged(mWearDevice, mNotifyIndex++, fHandData);
                                         }
                                     });
-                                } catch (Exception e) {
-                                    // 処理なし
                                 }
                             }
                         });

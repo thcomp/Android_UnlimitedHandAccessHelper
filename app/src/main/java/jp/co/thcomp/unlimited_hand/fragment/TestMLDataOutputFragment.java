@@ -149,6 +149,16 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
         mRootView.findViewById(R.id.btnSaveData).setOnClickListener(mBtnClickListener);
         mRootView.findViewById(R.id.btnClearData).setOnClickListener(mBtnClickListener);
 
+        TextView tvFingerConditionDescription = (TextView) mRootView.findViewById(R.id.tvFinderConditionDescription);
+        StringBuilder fingerConditionDescription = new StringBuilder();
+        for (int i = 0, size = UhGestureDetector.FingerCondition.values().length; i < size; i++) {
+            if (i != 0) {
+                fingerConditionDescription.append(", ");
+            }
+            fingerConditionDescription.append(i).append(":").append(UhGestureDetector.FingerCondition.values()[i].name());
+        }
+        tvFingerConditionDescription.setText(fingerConditionDescription.toString());
+
         for (int i = 0, sizeI = READ_SENSOR.values().length; i < sizeI; i++) {
             READ_SENSOR readSensor = READ_SENSOR.values()[i];
 
