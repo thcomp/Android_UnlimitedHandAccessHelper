@@ -5,12 +5,16 @@ import android.content.Context;
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import jp.co.thcomp.unlimitedhand.data.AbstractSensorData;
 import jp.co.thcomp.unlimitedhand.data.AccelerationData;
+import jp.co.thcomp.unlimitedhand.data.AngleData;
 import jp.co.thcomp.unlimitedhand.data.GyroData;
 import jp.co.thcomp.unlimitedhand.data.HandData;
 import jp.co.thcomp.unlimitedhand.data.PhotoReflectorData;
+import jp.co.thcomp.unlimitedhand.data.QuaternionData;
+import jp.co.thcomp.unlimitedhand.data.TemperatureData;
 import jp.co.thcomp.util.LogUtil;
 import jp.co.thcomp.util.ThreadUtil;
 
@@ -18,6 +22,14 @@ public class UhGestureDetector2 {
     private static final String INPUT_SENSOR_NAME = "sensor_values_placeholder:0";
     private static final String INPUT_LABEL_NAME = "labels_placeholder:0";
     private static final String OUTPUT_GESTURE_NAME = "eval_correct";
+
+    public static final int USE_SENSOR_INDEX_ACCELERATION = 0;
+    public static final int USE_SENSOR_INDEX_GYRO = 1;
+    public static final int USE_SENSOR_INDEX_PHOTO_REFLECTOR = 2;
+    public static final int USE_SENSOR_INDEX_ANGLE = 3;
+    public static final int USE_SENSOR_INDEX_TEMPERATURE = 4;
+    public static final int USE_SENSOR_INDEX_QUATERNION = 5;
+    public static final int MAX_USE_SENSOR = 6;
 
     static {
         System.loadLibrary("tensorflow_inference");
@@ -35,6 +47,7 @@ public class UhGestureDetector2 {
     private long mNotifyIndex = 0;
     private TensorFlowInferenceInterface mInterface;
     private ArrayList<AbstractSensorData[]> mCombineSensorDatasList = new ArrayList<AbstractSensorData[]>();
+    private boolean[] mUseEachSensor = new boolean[MAX_USE_SENSOR];
 
     public UhGestureDetector2(Context context, UhAccessHelper uhAccessHelper, UhGestureDetector.WearDevice wearDevice, String mlPbFile, int combineSensorDataCount) {
         if (context == null) {
@@ -83,6 +96,30 @@ public class UhGestureDetector2 {
         }
     }
 
+    public void useAccelerationSensor(boolean use) {
+        mUseEachSensor[USE_SENSOR_INDEX_ACCELERATION] = use;
+    }
+
+    public void useGyroSensor(boolean use) {
+        mUseEachSensor[USE_SENSOR_INDEX_GYRO] = use;
+    }
+
+    public void usePhotoReflectorSensor(boolean use) {
+        mUseEachSensor[USE_SENSOR_INDEX_PHOTO_REFLECTOR] = use;
+    }
+
+    public void useAngleSensor(boolean use) {
+        mUseEachSensor[USE_SENSOR_INDEX_ANGLE] = use;
+    }
+
+    public void useTemperatureSensor(boolean use) {
+        mUseEachSensor[USE_SENSOR_INDEX_TEMPERATURE] = use;
+    }
+
+    public void useQuaternionSensor(boolean use) {
+        mUseEachSensor[USE_SENSOR_INDEX_QUATERNION] = use;
+    }
+
     private class GestureDetector implements UhAccessHelper.OnSensorPollingListener {
         private boolean mListening = false;
 
@@ -90,7 +127,32 @@ public class UhGestureDetector2 {
             if (!mListening) {
                 mListening = true;
                 mUhAccessHelper.setPollingRatePerSecond(DEFAULT_CALIBRATE_RATE_PER_SECOND);
-                mUhAccessHelper.startPollingSensor(this, UhAccessHelper.POLLING_PHOTO_REFLECTOR | UhAccessHelper.POLLING_ACCELERATION | UhAccessHelper.POLLING_GYRO);
+
+                int pollingFlag = 0;
+                for (int i = 0, size = mUseEachSensor.length; i < size; i++) {
+                    switch (i) {
+                        case USE_SENSOR_INDEX_ACCELERATION:
+                            pollingFlag += UhAccessHelper.POLLING_ACCELERATION;
+                            break;
+                        case USE_SENSOR_INDEX_GYRO:
+                            pollingFlag += UhAccessHelper.POLLING_GYRO;
+                            break;
+                        case USE_SENSOR_INDEX_PHOTO_REFLECTOR:
+                            pollingFlag += UhAccessHelper.POLLING_PHOTO_REFLECTOR;
+                            break;
+                        case USE_SENSOR_INDEX_ANGLE:
+                            pollingFlag += UhAccessHelper.POLLING_ANGLE;
+                            break;
+                        case USE_SENSOR_INDEX_TEMPERATURE:
+                            pollingFlag += UhAccessHelper.POLLING_TEMPERATURE;
+                            break;
+                        case USE_SENSOR_INDEX_QUATERNION:
+                            pollingFlag += UhAccessHelper.POLLING_QUATERNION;
+                            break;
+                    }
+                }
+
+                mUhAccessHelper.startPollingSensor(this, pollingFlag);
             }
         }
 
@@ -142,6 +204,9 @@ public class UhGestureDetector2 {
                 PhotoReflectorData photoReflectorData = null;
                 AccelerationData accelerationData = null;
                 GyroData gyroData = null;
+                AngleData angleData = null;
+                TemperatureData temperatureData = null;
+                QuaternionData quaternionData = null;
 
                 for (AbstractSensorData sensorData : sensorDataArray) {
                     if (sensorData instanceof PhotoReflectorData) {
@@ -150,22 +215,37 @@ public class UhGestureDetector2 {
                         accelerationData = (AccelerationData) sensorData;
                     } else if (sensorData instanceof GyroData) {
                         gyroData = (GyroData) sensorData;
+                    } else if (sensorData instanceof AngleData) {
+                        angleData = (AngleData) sensorData;
+                    } else if (sensorData instanceof TemperatureData) {
+                        temperatureData = (TemperatureData) sensorData;
+                    } else if (sensorData instanceof QuaternionData) {
+                        quaternionData = (QuaternionData) sensorData;
                     }
                 }
 
-                if ((fingerStatusListener != null) && (photoReflectorData != null) && (accelerationData != null) && (gyroData != null)) {
-                    mCombineSensorDatasList.add(new AbstractSensorData[]{accelerationData, gyroData, photoReflectorData});
+                if (fingerStatusListener != null) {
+                    mCombineSensorDatasList.add(new AbstractSensorData[]{accelerationData, gyroData, photoReflectorData, angleData, temperatureData, quaternionData});
 
                     if (mCombineSensorDatasList.size() >= mCombineSensorDataCount) {
                         final int[] fSensorDataCountArray = {
                                 AccelerationData.ACCELERATION_NUM,
                                 GyroData.GYRO_NUM,
                                 PhotoReflectorData.PHOTO_REFLECTOR_NUM,
+                                AngleData.ANGLE_NUM,
+                                TemperatureData.TEMPERATURE_NUM,
+                                QuaternionData.QUATERNION_NUM,
                         };
                         ThreadUtil.runOnWorkThread(mContext, new Runnable() {
                             @Override
                             public void run() {
-                                float[] sensorValueArray = new float[(AccelerationData.ACCELERATION_NUM + GyroData.GYRO_NUM + PhotoReflectorData.PHOTO_REFLECTOR_NUM) * mCombineSensorDataCount];
+                                int sensorValueSize = 0;
+                                for (int i = 0; i < MAX_USE_SENSOR; i++) {
+                                    if (mUseEachSensor[i]) {
+                                        sensorValueSize += fSensorDataCountArray[i];
+                                    }
+                                }
+                                float[] sensorValueArray = new float[sensorValueSize * mCombineSensorDataCount];
 
                                 synchronized (UhGestureDetector2.this) {
                                     // create data
@@ -173,14 +253,16 @@ public class UhGestureDetector2 {
                                     for (int i = 0; i < mCombineSensorDataCount; i++) {
                                         AbstractSensorData[] tempSensorDataArray = mCombineSensorDatasList.get(i);
                                         for (int j = 0, sizeJ = tempSensorDataArray.length; j < sizeJ; j++) {
-                                            for (int k = 0; k < fSensorDataCountArray[j]; k++) {
-                                                Object tempValue = tempSensorDataArray[j].getRawValue(k);
-                                                if (tempValue instanceof Integer) {
-                                                    sensorValueArray[dataPosition] = (int) tempValue;
-                                                } else if (tempValue instanceof Float) {
-                                                    sensorValueArray[dataPosition] = (float) tempValue;
+                                            if (mUseEachSensor[j] && (tempSensorDataArray[j] != null)) {
+                                                for (int k = 0; k < fSensorDataCountArray[j]; k++) {
+                                                    Object tempValue = tempSensorDataArray[j].getRawValue(k);
+                                                    if (tempValue instanceof Integer) {
+                                                        sensorValueArray[dataPosition] = (int) tempValue;
+                                                    } else if (tempValue instanceof Float) {
+                                                        sensorValueArray[dataPosition] = (float) tempValue;
+                                                    }
+                                                    dataPosition++;
                                                 }
-                                                dataPosition++;
                                             }
                                         }
                                     }
@@ -193,6 +275,7 @@ public class UhGestureDetector2 {
                                 int value = Integer.MIN_VALUE;
                                 boolean successFetch = true;
 
+                                LogUtil.d(TAG, INPUT_SENSOR_NAME + ": " + Arrays.toString(sensorValueArray));
                                 for (int i = 0, size = (int) Math.pow(2, 5); i < size; i++) {
                                     try {
                                         // TensorFlow_NightlyBuild

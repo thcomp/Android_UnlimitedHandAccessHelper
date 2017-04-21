@@ -9,6 +9,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.text.Editable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,7 +25,6 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.zip.GZIPOutputStream;
 
 import jp.co.thcomp.unlimited_hand.MLSensorValueDatabase;
@@ -49,23 +49,23 @@ import jp.co.thcomp.util.ToastUtil;
 public class TestMLDataOutputFragment extends AbstractTestFragment {
     private static final int MAX_SUPPORT_FINGER_CONDITION = UhGestureDetector.FingerCondition.HardCurve.ordinal();
     private static final String TAG = TestMLDataOutputFragment.class.getSimpleName();
-    private static final String TEMPORARY_ZIP_FILE = "sensor_data_%1$04d%2$02d%3$02d_%4$02d%5$02d%6$02d.gzip";
+    private static final String TEMPORARY_ZIP_FILE = "sensor_data_%1$s%2$s%3$s%4$s%5$s.gzip";
     private static final String PREF_LAST_MAIL_ADDRESS = "PREF_LAST_MAIL_ADDRESS";
     private static final int REQUEST_CODE_WRITE_STORAGE = "REQUEST_CODE_WRITE_STORAGE".hashCode() & 0x0000FFFF;
     private static final int DEFAULT_READ_FPS = 30;
     private static final int DEFAULT_READ_INTERVAL_MS = (int) (1000 / DEFAULT_READ_FPS);
 
     private enum READ_SENSOR {
+        ACCELERATION(R.id.cbAcceleration, true, AccelerationData.class, UhAccessHelper.POLLING_ACCELERATION,
+                R.id.tvAcceleration0, R.id.tvAcceleration1, R.id.tvAcceleration2),
+        GYRO(R.id.cbGyro, true, GyroData.class, UhAccessHelper.POLLING_GYRO,
+                R.id.tvGyro0, R.id.tvGyro1, R.id.tvGyro2),
         PHOTO(R.id.cbPhotoSensor, true, PhotoReflectorData.class, UhAccessHelper.POLLING_PHOTO_REFLECTOR,
                 R.id.tvPhotoSensor0, R.id.tvPhotoSensor1, R.id.tvPhotoSensor2, R.id.tvPhotoSensor3,
                 R.id.tvPhotoSensor4, R.id.tvPhotoSensor5, R.id.tvPhotoSensor6, R.id.tvPhotoSensor7),
         ANGLE(R.id.cbAngle, false, AngleData.class, UhAccessHelper.POLLING_ANGLE,
                 R.id.tvAngle0, R.id.tvAngle1, R.id.tvAngle2),
         TEMPERATURE(R.id.cbTemperature, false, TemperatureData.class, UhAccessHelper.POLLING_TEMPERATURE, R.id.tvTemperature0),
-        ACCELERATION(R.id.cbAcceleration, true, AccelerationData.class, UhAccessHelper.POLLING_ACCELERATION,
-                R.id.tvAcceleration0, R.id.tvAcceleration1, R.id.tvAcceleration2),
-        GYRO(R.id.cbGyro, true, GyroData.class, UhAccessHelper.POLLING_GYRO,
-                R.id.tvGyro0, R.id.tvGyro1, R.id.tvGyro2),
         QUATERNION(R.id.cbQuaternion, false, QuaternionData.class, UhAccessHelper.POLLING_QUATERNION,
                 R.id.tvQuaternion0, R.id.tvQuaternion1, R.id.tvQuaternion2, R.id.tvQuaternion3),;
 
@@ -93,11 +93,11 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
     private EditText mPinkeyValue;
     private EditText mAddress;
     private TextView[][] mTvReadSensorValues = {
+            new TextView[AccelerationData.ACCELERATION_NUM],
+            new TextView[GyroData.GYRO_NUM],
             new TextView[PhotoReflectorData.PHOTO_REFLECTOR_NUM],
             new TextView[AngleData.ANGLE_NUM],
             new TextView[TemperatureData.TEMPERATURE_NUM],
-            new TextView[AccelerationData.ACCELERATION_NUM],
-            new TextView[GyroData.GYRO_NUM],
             new TextView[QuaternionData.QUATERNION_NUM],
     };
     private SaveSensorDataTask mSaveSensorDataTask = null;
@@ -338,14 +338,16 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
                 for (int i = 0, size = sensorDataArray.length; i < size; i++) {
                     if (sensorDataArray[i] instanceof PhotoReflectorData) {
                         tempSensorDataList.add(new PhotoReflectorData(sensorDataArray[i]));
-                    } else if (sensorDataArray[i] instanceof AngleData) {
-                        tempSensorDataList.add(new AngleData(sensorDataArray[i]));
-                    } else if (sensorDataArray[i] instanceof TemperatureData) {
-                        tempSensorDataList.add(new TemperatureData(sensorDataArray[i]));
                     } else if (sensorDataArray[i] instanceof AccelerationData) {
                         tempSensorDataList.add(new AccelerationData(sensorDataArray[i]));
                     } else if (sensorDataArray[i] instanceof GyroData) {
                         tempSensorDataList.add(new GyroData(sensorDataArray[i]));
+                    } else if (sensorDataArray[i] instanceof AngleData) {
+                        tempSensorDataList.add(new AngleData(sensorDataArray[i]));
+                    } else if (sensorDataArray[i] instanceof TemperatureData) {
+                        tempSensorDataList.add(new TemperatureData(sensorDataArray[i]));
+                    } else if (sensorDataArray[i] instanceof QuaternionData) {
+                        tempSensorDataList.add(new QuaternionData(sensorDataArray[i]));
                     }
                 }
 
@@ -369,6 +371,11 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
     private class SaveSensorDataTask extends AsyncTask<Void, Void, File> {
         private ProgressDialog mProgressDialog = null;
         private OnSaveDataFinishedListener mListener;
+        private Editable mThumbEditable;
+        private Editable mIndexEditable;
+        private Editable mMiddleEditable;
+        private Editable mRingEditable;
+        private Editable mPinkeyEditable;
 
         public SaveSensorDataTask(OnSaveDataFinishedListener listener) {
             mListener = listener;
@@ -377,6 +384,12 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+
+            mThumbEditable = mThumbValue.getText();
+            mIndexEditable = mIndexValue.getText();
+            mMiddleEditable = mMiddleValue.getText();
+            mRingEditable = mRingValue.getText();
+            mPinkeyEditable = mPinkeyValue.getText();
 
             mProgressDialog = new ProgressDialog(getActivity());
             mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
@@ -395,16 +408,15 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
                 if (!temporaryFileDir.exists()) {
                     temporaryFileDir.mkdirs();
                 }
-                Calendar calendar = Calendar.getInstance();
                 temporaryFile = new File(
                         temporaryFileDir.getAbsolutePath() + "/" +
                                 String.format(TEMPORARY_ZIP_FILE,
-                                        calendar.get(Calendar.YEAR),
-                                        calendar.get(Calendar.MONTH) + 1,
-                                        calendar.get(Calendar.DAY_OF_MONTH),
-                                        calendar.get(Calendar.HOUR_OF_DAY),
-                                        calendar.get(Calendar.MINUTE),
-                                        calendar.get(Calendar.SECOND)));
+                                        mPinkeyEditable.toString(),
+                                        mRingEditable.toString(),
+                                        mMiddleEditable.toString(),
+                                        mIndexEditable.toString(),
+                                        mThumbEditable.toString()));
+
                 outputStream = new FileOutputStream(temporaryFile);
                 gzipOutputStream = new GZIPOutputStream(outputStream);
 
@@ -426,9 +438,13 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
                     Cursor targetCursor = dataCursorArray[i];
                     Class targetDataClass = dataClassArray[i];
 
-
-                    Constructor constructor = targetDataClass.getConstructor();
-                    AbstractMLSensorData tempInstance = (AbstractMLSensorData) constructor.newInstance();
+                    boolean[] useSensorArray = new boolean[READ_SENSOR.values().length];
+                    for (READ_SENSOR readSensor : READ_SENSOR.values()) {
+                        CheckBox checkBox = (CheckBox) mRootView.findViewById(readSensor.mViewResId);
+                        useSensorArray[readSensor.ordinal()] = checkBox.isChecked();
+                    }
+                    Constructor constructor = targetDataClass.getConstructor(boolean[].class);
+                    AbstractMLSensorData tempInstance = (AbstractMLSensorData) constructor.newInstance(useSensorArray);
 
                     for (; !targetCursor.isAfterLast(); targetCursor.moveToNext()) {
                         dataLineBuilder.append(tempInstance.getMLSensorData(targetCursor)).append("\n");
@@ -547,6 +563,18 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
                         for (int i = 0, size = GyroData.GYRO_NUM; i < size; i++) {
                             mlSensorData.gyroDataArray[i] = String.valueOf(sensorData.getRawValue(i));
                         }
+                    } else if (sensorData instanceof AngleData) {
+                        for (int i = 0, size = AngleData.ANGLE_NUM; i < size; i++) {
+                            mlSensorData.angleDataArray[i] = String.valueOf(sensorData.getRawValue(i));
+                        }
+                    } else if (sensorData instanceof TemperatureData) {
+                        for (int i = 0, size = TemperatureData.TEMPERATURE_NUM; i < size; i++) {
+                            mlSensorData.temperatureDataArray[i] = String.valueOf(sensorData.getRawValue(i));
+                        }
+                    } else if (sensorData instanceof QuaternionData) {
+                        for (int i = 0, size = QuaternionData.QUATERNION_NUM; i < size; i++) {
+                            mlSensorData.quaternionDataArray[i] = String.valueOf(sensorData.getRawValue(i));
+                        }
                     }
                 }
                 String[] fingerValues = {
@@ -588,10 +616,16 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
 
                 if (tempSensorData instanceof PhotoReflectorData) {
                     readSensor = READ_SENSOR.PHOTO;
+                } else if (tempSensorData instanceof AngleData) {
+                    readSensor = READ_SENSOR.ANGLE;
+                } else if (tempSensorData instanceof TemperatureData) {
+                    readSensor = READ_SENSOR.TEMPERATURE;
                 } else if (tempSensorData instanceof AccelerationData) {
                     readSensor = READ_SENSOR.ACCELERATION;
                 } else if (tempSensorData instanceof GyroData) {
                     readSensor = READ_SENSOR.GYRO;
+                } else if (tempSensorData instanceof QuaternionData) {
+                    readSensor = READ_SENSOR.QUATERNION;
                 }
 
                 if (readSensor != null) {
