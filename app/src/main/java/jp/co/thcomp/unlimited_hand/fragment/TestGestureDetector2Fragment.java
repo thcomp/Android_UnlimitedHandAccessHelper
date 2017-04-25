@@ -281,7 +281,9 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
                         EditText etDiluteDataBytes = (EditText) mRootView.findViewById(R.id.etDiluteDataBytes);
                         int combineSensorDataCount = Integer.valueOf(etCombineSensorData.getText().toString());
                         int diluteDataBytes = Integer.valueOf(etDiluteDataBytes.getText().toString());
-                        mUhGestureDetector.stopListening();
+                        if (mUhGestureDetector != null) {
+                            mUhGestureDetector.stopListening();
+                        }
                         mUhGestureDetector = new UhGestureDetector2(getActivity(), mUHAccessHelper, DefaultMlAsset.RightArm.wearDevice, DefaultMlAsset.RightArm.mlAsset, combineSensorDataCount, diluteDataBytes);
                         mUhGestureDetector.setFingerStatusListener(mGestureListener);
                         mUhGestureDetector.startListening();
