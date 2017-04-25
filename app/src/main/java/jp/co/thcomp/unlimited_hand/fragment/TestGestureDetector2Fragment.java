@@ -28,6 +28,7 @@ import jp.co.thcomp.util.ToastUtil;
 public class TestGestureDetector2Fragment extends AbstractTestFragment {
     private static final String TAG = TestGestureDetector2Fragment.class.getSimpleName();
     private static final String PREF_INT_COMBINE_SENSOR_DATA_COUNT = "PREF_INT_COMBINE_SENSOR_DATA_COUNT";
+    private static final String PREF_INT_DILUTE_DATA_BYTES = "PREF_INT_DILUTE_DATA_BYTES";
     private static final String PREF_BOOLEAN_USE_ACCEL_FOR_GESTURE_DETECT = "PREF_BOOLEAN_USE_ACCEL_FOR_GESTURE_DETECT";
     private static final String PREF_BOOLEAN_USE_GYRO_FOR_GESTURE_DETECT = "PREF_BOOLEAN_USE_GYRO_FOR_GESTURE_DETECT";
     private static final String PREF_BOOLEAN_USE_PHOTO_REFLECTOR_FOR_GESTURE_DETECT = "PREF_BOOLEAN_USE_PHOTO_REFLECTOR_FOR_GESTURE_DETECT";
@@ -92,6 +93,7 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
 
         final Activity activity = getActivity();
         final int combineSensorDataCount = PreferenceUtil.readPrefInt(activity, PREF_INT_COMBINE_SENSOR_DATA_COUNT, 1);
+        final int diluteDataBytes = PreferenceUtil.readPrefInt(activity, PREF_INT_DILUTE_DATA_BYTES, 0);
 
         if (ExternalMlAsset.RightArm.exist()) {
             RuntimePermissionUtil.requestPermissions(
@@ -102,10 +104,10 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
                         public void onRequestPermissionsResult(@NonNull String[] permissions, @NonNull int[] grantResults) {
                             if (grantResults != null && grantResults.length > 0) {
                                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                                    mUhGestureDetector = new UhGestureDetector2(activity, mUHAccessHelper, ExternalMlAsset.RightArm.wearDevice, ExternalMlAsset.RightArm.mlAssetInExternalStorage, combineSensorDataCount);
+                                    mUhGestureDetector = new UhGestureDetector2(activity, mUHAccessHelper, ExternalMlAsset.RightArm.wearDevice, ExternalMlAsset.RightArm.mlAssetInExternalStorage, combineSensorDataCount, diluteDataBytes);
                                     ToastUtil.showToast(activity, "use external Protocol Buffer file for ML", Toast.LENGTH_SHORT);
                                 } else {
-                                    mUhGestureDetector = new UhGestureDetector2(activity, mUHAccessHelper, DefaultMlAsset.RightArm.wearDevice, DefaultMlAsset.RightArm.mlAsset, combineSensorDataCount);
+                                    mUhGestureDetector = new UhGestureDetector2(activity, mUHAccessHelper, DefaultMlAsset.RightArm.wearDevice, DefaultMlAsset.RightArm.mlAsset, combineSensorDataCount, diluteDataBytes);
                                     ToastUtil.showToast(activity, "use internal Protocol Buffer file for ML", Toast.LENGTH_SHORT);
                                 }
 
@@ -122,7 +124,7 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
                     }
             );
         } else {
-            mUhGestureDetector = new UhGestureDetector2(activity, mUHAccessHelper, DefaultMlAsset.RightArm.wearDevice, DefaultMlAsset.RightArm.mlAsset, combineSensorDataCount);
+            mUhGestureDetector = new UhGestureDetector2(activity, mUHAccessHelper, DefaultMlAsset.RightArm.wearDevice, DefaultMlAsset.RightArm.mlAsset, combineSensorDataCount, diluteDataBytes);
             mUhGestureDetector.useAccelerationSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_ACCEL_FOR_GESTURE_DETECT, false));
             mUhGestureDetector.useGyroSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_GYRO_FOR_GESTURE_DETECT, false));
             mUhGestureDetector.usePhotoReflectorSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_PHOTO_REFLECTOR_FOR_GESTURE_DETECT, false));
@@ -153,6 +155,11 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
         EditText etCombineSensorData = (EditText) mRootView.findViewById(R.id.etCombineSensorDataCount);
         etCombineSensorData.setText(String.valueOf(combineSensorDataCount));
         mRootView.findViewById(R.id.btnUpdateCombineSensorDataCount).setOnClickListener(mClickListener);
+
+        int diluteDataBytes = PreferenceUtil.readPrefInt(activity, PREF_INT_DILUTE_DATA_BYTES, 0);
+        EditText etDiluteDataBytes = (EditText) mRootView.findViewById(R.id.etDiluteDataBytes);
+        etDiluteDataBytes.setText(String.valueOf(diluteDataBytes));
+        mRootView.findViewById(R.id.btnUpdateDiluteDataBytes).setOnClickListener(mClickListener);
 
         CheckBox cbUseAccel = (CheckBox) mRootView.findViewById(R.id.cbUseAccel);
         CheckBox cbUseGyro = (CheckBox) mRootView.findViewById(R.id.cbUseGyro);
@@ -198,6 +205,14 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
         try {
             int combineSensorDataCount = Integer.valueOf(etCombineSensorData.getText().toString());
             PreferenceUtil.writePref(activity, PREF_INT_COMBINE_SENSOR_DATA_COUNT, combineSensorDataCount);
+        } catch (NumberFormatException e) {
+            // 処理なし
+        }
+
+        EditText etDiluteDataBytes = (EditText) mRootView.findViewById(R.id.etDiluteDataBytes);
+        try {
+            int diluteDataBytes = Integer.valueOf(etDiluteDataBytes.getText().toString());
+            PreferenceUtil.writePref(activity, PREF_INT_DILUTE_DATA_BYTES, diluteDataBytes);
         } catch (NumberFormatException e) {
             // 処理なし
         }
@@ -258,17 +273,22 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
         public void onClick(View v) {
             int id = v.getId();
 
-            if (id == R.id.btnUpdateCombineSensorDataCount) {
-                EditText etCombineSensorData = (EditText) mRootView.findViewById(R.id.etCombineSensorDataCount);
-                try {
-                    int combineSensorDataCount = Integer.valueOf(etCombineSensorData.getText().toString());
-                    mUhGestureDetector.stopListening();
-                    mUhGestureDetector = new UhGestureDetector2(getActivity(), mUHAccessHelper, DefaultMlAsset.RightArm.wearDevice, DefaultMlAsset.RightArm.mlAsset, combineSensorDataCount);
-                    mUhGestureDetector.setFingerStatusListener(mGestureListener);
-                    mUhGestureDetector.startListening();
-                } catch (NumberFormatException e) {
-                    // 処理なし
-                }
+            switch (id) {
+                case R.id.btnUpdateCombineSensorDataCount:
+                case R.id.btnUpdateDiluteDataBytes:
+                    try {
+                        EditText etCombineSensorData = (EditText) mRootView.findViewById(R.id.etCombineSensorDataCount);
+                        EditText etDiluteDataBytes = (EditText) mRootView.findViewById(R.id.etDiluteDataBytes);
+                        int combineSensorDataCount = Integer.valueOf(etCombineSensorData.getText().toString());
+                        int diluteDataBytes = Integer.valueOf(etDiluteDataBytes.getText().toString());
+                        mUhGestureDetector.stopListening();
+                        mUhGestureDetector = new UhGestureDetector2(getActivity(), mUHAccessHelper, DefaultMlAsset.RightArm.wearDevice, DefaultMlAsset.RightArm.mlAsset, combineSensorDataCount, diluteDataBytes);
+                        mUhGestureDetector.setFingerStatusListener(mGestureListener);
+                        mUhGestureDetector.startListening();
+                    } catch (NumberFormatException e) {
+                        // 処理なし
+                    }
+                    break;
             }
         }
     };
@@ -276,7 +296,7 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
     private CompoundButton.OnCheckedChangeListener mCheckedChangeListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-            if(mUhGestureDetector != null){
+            if (mUhGestureDetector != null) {
                 switch (buttonView.getId()) {
                     case R.id.cbUseAccel:
                         mUhGestureDetector.useAccelerationSensor(isChecked);
@@ -297,7 +317,7 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
                         mUhGestureDetector.useQuaternionSensor(isChecked);
                         break;
                 }
-            }else{
+            } else {
                 switch (buttonView.getId()) {
                     case R.id.cbUseAccel:
                         PreferenceUtil.writePref(getActivity(), PREF_BOOLEAN_USE_ACCEL_FOR_GESTURE_DETECT, isChecked);

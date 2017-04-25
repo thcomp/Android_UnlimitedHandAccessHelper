@@ -44,12 +44,13 @@ public class UhGestureDetector2 {
     private GestureDetector mGestureDetector = new GestureDetector();
     private UhGestureDetector.WearDevice mWearDevice = UhGestureDetector.WearDevice.RightArm;
     private int mCombineSensorDataCount = 1;
+    private int mDiluteDataBytes = 1;
     private long mNotifyIndex = 0;
     private TensorFlowInferenceInterface mInterface;
     private ArrayList<AbstractSensorData[]> mCombineSensorDatasList = new ArrayList<AbstractSensorData[]>();
     private boolean[] mUseEachSensor = new boolean[MAX_USE_SENSOR];
 
-    public UhGestureDetector2(Context context, UhAccessHelper uhAccessHelper, UhGestureDetector.WearDevice wearDevice, String mlPbFile, int combineSensorDataCount) {
+    public UhGestureDetector2(Context context, UhAccessHelper uhAccessHelper, UhGestureDetector.WearDevice wearDevice, String mlPbFile, int combineSensorDataCount, int diluteDataBytes) {
         if (context == null) {
             throw new NullPointerException("context == null");
         }
@@ -62,11 +63,15 @@ public class UhGestureDetector2 {
         if (combineSensorDataCount <= 0) {
             throw new IllegalArgumentException("combineSensorDataCount = " + combineSensorDataCount);
         }
+        if (diluteDataBytes < 0) {
+            throw new IllegalArgumentException("diluteDataSize = " + diluteDataBytes);
+        }
 
         mContext = context;
         mUhAccessHelper = uhAccessHelper;
         mWearDevice = wearDevice;
         mCombineSensorDataCount = combineSensorDataCount;
+        mDiluteDataBytes = diluteDataBytes;
 
         // TensorFlow_NightlyBuild
         mInterface = new TensorFlowInferenceInterface(context.getAssets(), mlPbFile);
@@ -242,7 +247,11 @@ public class UhGestureDetector2 {
                                 int sensorValueSize = 0;
                                 for (int i = 0; i < MAX_USE_SENSOR; i++) {
                                     if (mUseEachSensor[i]) {
-                                        sensorValueSize += fSensorDataCountArray[i];
+                                        if (mDiluteDataBytes > 0) {
+                                            sensorValueSize += (fSensorDataCountArray[i] * mDiluteDataBytes);
+                                        } else {
+                                            sensorValueSize += fSensorDataCountArray[i];
+                                        }
                                     }
                                 }
                                 float[] sensorValueArray = new float[sensorValueSize * mCombineSensorDataCount];
@@ -250,18 +259,44 @@ public class UhGestureDetector2 {
                                 synchronized (UhGestureDetector2.this) {
                                     // create data
                                     int dataPosition = 0;
+                                    String intFmt = null;
+                                    String floatFmt = null;
+
+                                    if (mDiluteDataBytes > 0) {
+                                        intFmt = String.format("%%0%dd", mDiluteDataBytes);
+                                        floatFmt = String.format("%%0%df", mDiluteDataBytes);
+                                    } else {
+                                        intFmt = "%d";
+                                        floatFmt = "%f";
+                                    }
+
                                     for (int i = 0; i < mCombineSensorDataCount; i++) {
                                         AbstractSensorData[] tempSensorDataArray = mCombineSensorDatasList.get(i);
                                         for (int j = 0, sizeJ = tempSensorDataArray.length; j < sizeJ; j++) {
                                             if (mUseEachSensor[j] && (tempSensorDataArray[j] != null)) {
                                                 for (int k = 0; k < fSensorDataCountArray[j]; k++) {
                                                     Object tempValue = tempSensorDataArray[j].getRawValue(k);
+                                                    float tempValueFloat = 0f;
+                                                    String zeroPadValue = null;
+
                                                     if (tempValue instanceof Integer) {
-                                                        sensorValueArray[dataPosition] = (int) tempValue;
+                                                        tempValueFloat = (int) tempValue;
+                                                        zeroPadValue = String.format(intFmt, (int) tempValue);
                                                     } else if (tempValue instanceof Float) {
-                                                        sensorValueArray[dataPosition] = (float) tempValue;
+                                                        tempValueFloat = (float) tempValue;
+                                                        zeroPadValue = String.format(floatFmt, (float) tempValue);
                                                     }
-                                                    dataPosition++;
+
+                                                    if (mDiluteDataBytes > 0) {
+                                                        LogUtil.d(TAG, tempValueFloat + "->" + zeroPadValue);
+                                                        for (byte tempValueByte : zeroPadValue.getBytes()) {
+                                                            sensorValueArray[dataPosition] = tempValueByte;
+                                                            dataPosition++;
+                                                        }
+                                                    } else {
+                                                        sensorValueArray[dataPosition] = tempValueFloat;
+                                                        dataPosition++;
+                                                    }
                                                 }
                                             }
                                         }
@@ -275,7 +310,7 @@ public class UhGestureDetector2 {
                                 int value = Integer.MIN_VALUE;
                                 boolean successFetch = true;
 
-                                LogUtil.d(TAG, INPUT_SENSOR_NAME + ": " + Arrays.toString(sensorValueArray));
+                                LogUtil.d(TAG, INPUT_SENSOR_NAME + ": size=" + sensorValueArray.length + ", " + Arrays.toString(sensorValueArray));
                                 for (int i = 0, size = (int) Math.pow(2, 5); i < size; i++) {
                                     try {
                                         // TensorFlow_NightlyBuild
