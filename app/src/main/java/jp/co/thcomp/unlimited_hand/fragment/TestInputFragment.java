@@ -102,6 +102,7 @@ public class TestInputFragment extends AbstractTestFragment {
             new TextView[GyroData.GYRO_NUM],
             new TextView[QuaternionData.QUATERNION_NUM],
     };
+    private TextView[] mTvRotateAxisAndDegreeValues = new TextView[4];
     private SaveSensorDataTask mSaveSensorDataTask = null;
     private ClearSensorDataTask mClearSensorDataTask = null;
     private AbstractSensorData[] mSensorDataArray = {
@@ -165,6 +166,12 @@ public class TestInputFragment extends AbstractTestFragment {
                 mTvReadSensorValues[i][j] = (TextView) mRootView.findViewById(readSensor.mDisplayValueResIds[j]);
             }
         }
+        mTvRotateAxisAndDegreeValues = new TextView[]{
+                (TextView) mRootView.findViewById(R.id.tvAxisX),
+                (TextView) mRootView.findViewById(R.id.tvAxisY),
+                (TextView) mRootView.findViewById(R.id.tvAxisZ),
+                (TextView) mRootView.findViewById(R.id.tvRotateDegree),
+        };
 
         return mRootView;
     }
@@ -373,7 +380,7 @@ public class TestInputFragment extends AbstractTestFragment {
             }
 
             while (!isCancelled()) {
-                if(UhAccessHelper.isEnableDebug()) {
+                if (UhAccessHelper.isEnableDebug()) {
                     LogUtil.d(TAG, "Input Sensor");
                 }
                 long startTimeMS = System.currentTimeMillis();
@@ -703,6 +710,21 @@ public class TestInputFragment extends AbstractTestFragment {
                     LogUtil.d(TAG, mSensorDataArray[i].toString());
                     mTvReadSensorValues[i][j].setText(String.valueOf(mSensorDataArray[i].getRawValue(j)));
                 }
+            }
+
+            // Quaternionの値から逆算して回転軸と回転角を算出(http://qiita.com/niusounds/items/c2bce33402db22434c82#_reference-1cce530f2aecce08ab5c)
+            QuaternionData quaternionData = (QuaternionData) mSensorDataArray[READ_SENSOR.QUATERNION.ordinal()];
+            double denominator = Math.sqrt(1 - quaternionData.getRawValue(3));
+            if (denominator != 0) {
+                double axisX = quaternionData.getRawValue(0) / denominator;
+                double axisY = quaternionData.getRawValue(1) / denominator;
+                double axisZ = quaternionData.getRawValue(2) / denominator;
+                double degree = (Math.acos(quaternionData.getRawValue(3)) * 2) * Math.PI / 180;
+
+                mTvRotateAxisAndDegreeValues[0].setText(String.valueOf(axisX));
+                mTvRotateAxisAndDegreeValues[1].setText(String.valueOf(axisY));
+                mTvRotateAxisAndDegreeValues[2].setText(String.valueOf(axisZ));
+                mTvRotateAxisAndDegreeValues[3].setText(String.valueOf(degree));
             }
 
             mUpdateTargetSensorRunnable.run();
