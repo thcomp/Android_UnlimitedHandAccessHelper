@@ -102,7 +102,6 @@ public class TestInputFragment extends AbstractTestFragment {
             new TextView[GyroData.GYRO_NUM],
             new TextView[QuaternionData.QUATERNION_NUM],
     };
-    private TextView[] mTvRotateAxisAndDegreeValues = new TextView[4];
     private SaveSensorDataTask mSaveSensorDataTask = null;
     private ClearSensorDataTask mClearSensorDataTask = null;
     private AbstractSensorData[] mSensorDataArray = {
@@ -166,12 +165,6 @@ public class TestInputFragment extends AbstractTestFragment {
                 mTvReadSensorValues[i][j] = (TextView) mRootView.findViewById(readSensor.mDisplayValueResIds[j]);
             }
         }
-        mTvRotateAxisAndDegreeValues = new TextView[]{
-                (TextView) mRootView.findViewById(R.id.tvAxisX),
-                (TextView) mRootView.findViewById(R.id.tvAxisY),
-                (TextView) mRootView.findViewById(R.id.tvAxisZ),
-                (TextView) mRootView.findViewById(R.id.tvRotateDegree),
-        };
 
         return mRootView;
     }
@@ -714,19 +707,42 @@ public class TestInputFragment extends AbstractTestFragment {
 
             // Quaternionの値から逆算して回転軸と回転角を算出(http://qiita.com/niusounds/items/c2bce33402db22434c82#_reference-1cce530f2aecce08ab5c)
             QuaternionData quaternionData = (QuaternionData) mSensorDataArray[READ_SENSOR.QUATERNION.ordinal()];
-            double denominator = Math.sqrt(1 - quaternionData.getRawValue(3));
-            if (denominator != 0) {
-                double axisX = quaternionData.getRawValue(0) / denominator;
-                double axisY = quaternionData.getRawValue(1) / denominator;
-                double axisZ = quaternionData.getRawValue(2) / denominator;
-                double degree = (Math.acos(quaternionData.getRawValue(3)) * 2) * Math.PI / 180;
+            float q0 = quaternionData.getRawValue(0), q1 = quaternionData.getRawValue(1), q2 = quaternionData.getRawValue(2), q3 = quaternionData.getRawValue(3);
+            /*
+                float getRoll(){return -1.0f * asinf(2.0f * q1 * q3 + 2.0f * q0 * q2);};
+                float getPitch(){return atan2f(2.0f * q2 * q3 - 2.0f * q0 * q1, 2.0f * q0 * q0 + 2.0f * q3 * q3 - 1.0f);};
+                float getYaw(){return atan2f(2.0f * q1 * q2 - 2.0f * q0 * q3, 2.0f * q0 * q0 + 2.0f * q1 * q1 - 1.0f);};
+             */
+//            double roll = -1 * Math.asin(2 * q1 * q3 + 2 * q0 * q2);
+//            double pitch = Math.atan2(2 * q2 * q3 - 2 * q0 * q1, 2 * q0 * q0 + 2 * Math.pow(q3, 2) - 1);
+//            double yaw = Math.atan2(2 * q1 * q2 - 2 * q0 * q3, 2 * q0 * q0 + 2 * q1 * q1 - 1);
+//            double rollDegree = 360 * roll / (2 * Math.PI);
+//            double pitchDegree = 360 * pitch / (2 * Math.PI);
+//            double yawDegree = 360 * yaw / (2 * Math.PI);
+            /*
+                float roll = Mathf.Atan2 (2 * gyro.y * gyro.z + 2 * gyro.w * gyro.x, -gyro.w * gyro.w + gyro.x * gyro.x + gyro.y * gyro.y - gyro.z * gyro.z);
+                float pitch = Mathf.Asin (2 * gyro.w * gyro.y - 2 * gyro.x * gyro.z);
+                float yaw   =  Mathf.Atan2(2 * gyro.x * gyro.y + 2 * gyro.w * gyro.z, gyro.w * gyro.w + gyro.x * gyro.x - gyro.y * gyro.y - gyro.z * gyro.z);
+             */
+            double roll = Math.atan2(2 * q2 * q3 + 2 * q0 * q1, -q0 * q0 + q1 * q1 + q2 * q2 - q3 * q3);
+            double pitch = Math.asin(2 * q0 * q2 - 2 * q1 * q3);
+            double yaw = Math.atan2(2 * q1 * q2 + 2 * q0 * q3, q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3);
+            double rollDegree = 360 * roll / (2 * Math.PI);
+            double pitchDegree = 360 * pitch / (2 * Math.PI);
+            double yawDegree = 360 * yaw / (2 * Math.PI);
+            ((TextView) mRootView.findViewById(R.id.tvAngleRoll)).setText(String.format("%.3f°", rollDegree));
+            ((TextView) mRootView.findViewById(R.id.tvAnglePitch)).setText(String.format("%.3f°", pitchDegree));
+            ((TextView) mRootView.findViewById(R.id.tvAngleYaw)).setText(String.format("%.3f°", yawDegree));
 
-                mTvRotateAxisAndDegreeValues[0].setText(String.valueOf(axisX));
-                mTvRotateAxisAndDegreeValues[1].setText(String.valueOf(axisY));
-                mTvRotateAxisAndDegreeValues[2].setText(String.valueOf(axisZ));
-                mTvRotateAxisAndDegreeValues[3].setText(String.valueOf(degree));
-            }
-
+            double phi = Math.atan2(2 * (q0 * q1 + q2 * q3), 1 - 2 * (q1 * q1 + q2 * q2));
+            double theta = Math.asin(2 * (q0 * q2 - q3 * q1));
+            double psi = Math.atan2(2 * (q0 * q3 + q1 * q2), 1 - 2 * (q2 * q2 + q3 * q3));
+            double phiDegree = 360 * phi / (2 * Math.PI);
+            double thetaDegree = 360 * theta / (2 * Math.PI);
+            double psiDegree = 360 * psi / (2 * Math.PI);
+            ((TextView) mRootView.findViewById(R.id.tvAnglePsi)).setText(String.format("%.3f°", psiDegree));
+            ((TextView) mRootView.findViewById(R.id.tvAngleTheta)).setText(String.format("%.3f°", thetaDegree));
+            ((TextView) mRootView.findViewById(R.id.tvAnglePhi)).setText(String.format("%.3f°", phiDegree));
             mUpdateTargetSensorRunnable.run();
         }
     };
