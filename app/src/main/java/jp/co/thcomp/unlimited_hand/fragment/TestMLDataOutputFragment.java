@@ -3,8 +3,13 @@ package jp.co.thcomp.unlimited_hand.fragment;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -47,6 +52,7 @@ import jp.co.thcomp.util.ThreadUtil;
 import jp.co.thcomp.util.ToastUtil;
 
 public class TestMLDataOutputFragment extends AbstractTestFragment {
+    private static final boolean ALWAYS_ENABLE_ALL_SENSOR = true;
     private static final int MAX_SUPPORT_FINGER_CONDITION = UhGestureDetector.FingerCondition.HardCurve.ordinal();
     private static final String TAG = TestMLDataOutputFragment.class.getSimpleName();
     private static final String TEMPORARY_ZIP_FILE = "sensor_data_%1$s%2$s%3$s%4$s%5$s.gzip";
@@ -63,11 +69,12 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
         PHOTO(R.id.cbPhotoSensor, true, PhotoReflectorData.class, UhAccessHelper.POLLING_PHOTO_REFLECTOR,
                 R.id.tvPhotoSensor0, R.id.tvPhotoSensor1, R.id.tvPhotoSensor2, R.id.tvPhotoSensor3,
                 R.id.tvPhotoSensor4, R.id.tvPhotoSensor5, R.id.tvPhotoSensor6, R.id.tvPhotoSensor7),
-        ANGLE(R.id.cbAngle, false, AngleData.class, UhAccessHelper.POLLING_ANGLE,
+        ANGLE(R.id.cbAngle, true, AngleData.class, UhAccessHelper.POLLING_ANGLE,
                 R.id.tvAngle0, R.id.tvAngle1, R.id.tvAngle2),
-        TEMPERATURE(R.id.cbTemperature, false, TemperatureData.class, UhAccessHelper.POLLING_TEMPERATURE, R.id.tvTemperature0),
-        QUATERNION(R.id.cbQuaternion, false, QuaternionData.class, UhAccessHelper.POLLING_QUATERNION,
-                R.id.tvQuaternion0, R.id.tvQuaternion1, R.id.tvQuaternion2, R.id.tvQuaternion3),;
+        TEMPERATURE(R.id.cbTemperature, true, TemperatureData.class, UhAccessHelper.POLLING_TEMPERATURE, R.id.tvTemperature0),
+        QUATERNION(R.id.cbQuaternion, true, QuaternionData.class, UhAccessHelper.POLLING_QUATERNION,
+                R.id.tvQuaternion0, R.id.tvQuaternion1, R.id.tvQuaternion2, R.id.tvQuaternion3),
+        AMBIENT_LIGHT(R.id.cbAmbientLight, true, null, 0, R.id.tvAmbientLight0),;
 
         int mViewResId;
         boolean mDefaultChecked;
@@ -99,10 +106,13 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
             new TextView[AngleData.ANGLE_NUM],
             new TextView[TemperatureData.TEMPERATURE_NUM],
             new TextView[QuaternionData.QUATERNION_NUM],
+            new TextView[1],    // for ambient light
     };
     private SaveSensorDataTask mSaveSensorDataTask = null;
     private ClearSensorDataTask mClearSensorDataTask = null;
     private ArrayList<AbstractSensorData> mSensorDataList = null;
+    private Sensor mAmbientLightSensor = null;
+    private float mLastAmbientLight = 0f;
 
     public TestMLDataOutputFragment() {
         // Required empty public constructor
@@ -123,6 +133,9 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mDatabase = new MLSensorValueDatabase(getContext(), 1);
+        SensorManager sensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
+        mAmbientLightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        sensorManager.registerListener(mLightSensorEventListener, mAmbientLightSensor, UhAccessHelper.DEFAULT_AMBIENT_LIGHT_POLLING);
     }
 
     @Override
@@ -135,6 +148,12 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         mRootView = super.onCreateView(inflater, container, savedInstanceState);
+
+        if (ALWAYS_ENABLE_ALL_SENSOR) {
+            mRootView.findViewById(R.id.llSensorArea).setVisibility(View.GONE);
+        } else {
+            mRootView.findViewById(R.id.llSensorArea).setVisibility(View.VISIBLE);
+        }
 
         mThumbValue = (EditText) mRootView.findViewById(R.id.etThumbValue);
         mIndexValue = (EditText) mRootView.findViewById(R.id.etIndexValue);
@@ -278,6 +297,18 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
         }
     }
 
+    private SensorEventListener mLightSensorEventListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            mLastAmbientLight = event.values[0];
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            // 処理なし
+        }
+    };
+
     private View.OnClickListener mBtnClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
@@ -319,7 +350,11 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
 
             int pollingFlag = 0;
             for (READ_SENSOR readSensor : READ_SENSOR.values()) {
-                pollingFlag += ((CheckBox) mRootView.findViewById(readSensor.mViewResId)).isChecked() ? readSensor.mPollingFlagValue : 0;
+                if (ALWAYS_ENABLE_ALL_SENSOR) {
+                    pollingFlag += readSensor.mPollingFlagValue;
+                } else {
+                    pollingFlag += ((CheckBox) mRootView.findViewById(readSensor.mViewResId)).isChecked() ? readSensor.mPollingFlagValue : 0;
+                }
             }
 
             mUHAccessHelper.startPollingSensor(this, pollingFlag);
@@ -440,8 +475,12 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
 
                     boolean[] useSensorArray = new boolean[READ_SENSOR.values().length];
                     for (READ_SENSOR readSensor : READ_SENSOR.values()) {
-                        CheckBox checkBox = (CheckBox) mRootView.findViewById(readSensor.mViewResId);
-                        useSensorArray[readSensor.ordinal()] = checkBox.isChecked();
+                        if (ALWAYS_ENABLE_ALL_SENSOR) {
+                            useSensorArray[readSensor.ordinal()] = true;
+                        } else {
+                            CheckBox checkBox = (CheckBox) mRootView.findViewById(readSensor.mViewResId);
+                            useSensorArray[readSensor.ordinal()] = checkBox.isChecked();
+                        }
                     }
                     Constructor constructor = targetDataClass.getConstructor(boolean[].class);
                     AbstractMLSensorData tempInstance = (AbstractMLSensorData) constructor.newInstance(useSensorArray);
@@ -550,6 +589,7 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
 
             if (tempSensorDataList != null && tempSensorDataList.size() > 0) {
                 MLSensorData mlSensorData = new MLSensorData();
+                mlSensorData.ambientLightDataArray[0] = String.valueOf(mLastAmbientLight);
                 for (AbstractSensorData sensorData : tempSensorDataList) {
                     if (sensorData instanceof PhotoReflectorData) {
                         for (int i = 0, size = PhotoReflectorData.PHOTO_REFLECTOR_NUM; i < size; i++) {
@@ -635,6 +675,8 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
                     }
                 }
             }
+
+            mTvReadSensorValues[READ_SENSOR.AMBIENT_LIGHT.ordinal()][0].setText(String.valueOf(mLastAmbientLight));
         }
     };
 }

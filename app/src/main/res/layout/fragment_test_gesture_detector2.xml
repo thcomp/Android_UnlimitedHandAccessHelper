@@ -9,6 +9,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
+
+        <android.support.v7.widget.SwitchCompat
+            android:id="@+id/swtUseRPS"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="use rock-paper-scissors mode"/>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -127,6 +134,22 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="quaternion"/>
+                </FrameLayout>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:weightSum="0.9"
+                android:orientation="horizontal">
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.9">
+                    <CheckBox
+                        android:id="@+id/cbUseAmbientLight"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ambient light"/>
                 </FrameLayout>
             </LinearLayout>
         </LinearLayout>

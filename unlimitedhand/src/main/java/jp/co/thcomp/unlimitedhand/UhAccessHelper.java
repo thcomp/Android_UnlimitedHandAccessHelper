@@ -2,6 +2,7 @@ package jp.co.thcomp.unlimitedhand;
 
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
+import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.HandlerThread;
 
@@ -35,6 +36,7 @@ public class UhAccessHelper {
     private static final String LINE_SEPARATOR = "\n";
 
     public static final int DEFAULT_POLLING_RATE_PER_SECOND = 30;
+    public static final int DEFAULT_AMBIENT_LIGHT_POLLING = SensorManager.SENSOR_DELAY_UI;
 
     public static final int POLLING_PHOTO_REFLECTOR = 1;
     public static final int POLLING_ANGLE = 2;
@@ -865,6 +867,7 @@ public class UhAccessHelper {
                     }
                 }
 
+                LogUtil.d(TAG, "command bit flag=" + uhCommandBitFlag + ", data size=" + retList.size());
                 if (retList.size() > 0) {
                     OnSensorPollingListener[] listenerArray = mPollingListenerMap.keySet().toArray(toArrayTypeListener);
                     AbstractSensorData[] dataArray = retList.toArray(toArrayTypeData);

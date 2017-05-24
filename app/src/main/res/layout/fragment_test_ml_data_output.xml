@@ -9,9 +9,11 @@
         android:orientation="vertical">
 
         <LinearLayout
+            android:id="@+id/llSensorArea"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -80,6 +82,19 @@
                     android:layout_weight="0.1"
                     android:text="quater"/>
             </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:weightSum="0.3"
+                android:orientation="horizontal">
+                <CheckBox
+                    android:id="@+id/cbAmbientLight"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.1"
+                    android:text="ambient light"/>
+            </LinearLayout>
+
         </LinearLayout>
 
         <Button
@@ -417,6 +432,27 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="0.25"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Ambient light: "/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="1.0"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tvAmbientLight0"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.0"/>
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>

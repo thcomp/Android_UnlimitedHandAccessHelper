@@ -21,6 +21,7 @@ public class MLSensorData extends AbstractMLSensorData {
             AngleData.ANGLE_NUM,
             TemperatureData.TEMPERATURE_NUM,
             QuaternionData.QUATERNION_NUM,
+            1,  // ambient light size
     };
 
     public String[] accelDataArray = null;
@@ -29,6 +30,7 @@ public class MLSensorData extends AbstractMLSensorData {
     public String[] angleDataArray = null;
     public String[] temperatureDataArray = null;
     public String[] quaternionDataArray = null;
+    public String[] ambientLightDataArray = null;
     private String[][] mDataArrays = null;
 
     public MLSensorData() {
@@ -38,6 +40,7 @@ public class MLSensorData extends AbstractMLSensorData {
         angleDataArray = new String[AngleData.ANGLE_NUM];
         temperatureDataArray = new String[TemperatureData.TEMPERATURE_NUM];
         quaternionDataArray = new String[QuaternionData.QUATERNION_NUM];
+        ambientLightDataArray = new String[1];
 
         mDataArrays = new String[][]{
                 accelDataArray,
@@ -46,6 +49,7 @@ public class MLSensorData extends AbstractMLSensorData {
                 angleDataArray,
                 temperatureDataArray,
                 quaternionDataArray,
+                ambientLightDataArray,
         };
     }
 
@@ -81,6 +85,11 @@ public class MLSensorData extends AbstractMLSensorData {
                 quaternionDataArray = new String[DEFAULT_DATA_ARRAY_SIZE[index]];
             }
 
+            index = UhGestureDetector2.USE_SENSOR_INDEX_AMBIENT_LIGHT;
+            if ((useData.length > index) && useData[index]) {
+                ambientLightDataArray = new String[DEFAULT_DATA_ARRAY_SIZE[index]];
+            }
+
             mDataArrays = new String[][]{
                     accelDataArray,
                     gyroDataArray,
@@ -88,6 +97,7 @@ public class MLSensorData extends AbstractMLSensorData {
                     angleDataArray,
                     temperatureDataArray,
                     quaternionDataArray,
+                    ambientLightDataArray,
             };
         } else {
             accelDataArray = new String[AccelerationData.ACCELERATION_NUM];
@@ -96,6 +106,7 @@ public class MLSensorData extends AbstractMLSensorData {
             angleDataArray = new String[AngleData.ANGLE_NUM];
             temperatureDataArray = new String[TemperatureData.TEMPERATURE_NUM];
             quaternionDataArray = new String[QuaternionData.QUATERNION_NUM];
+            ambientLightDataArray = new String[1];
 
             mDataArrays = new String[][]{
                     accelDataArray,
@@ -104,13 +115,14 @@ public class MLSensorData extends AbstractMLSensorData {
                     angleDataArray,
                     temperatureDataArray,
                     quaternionDataArray,
+                    ambientLightDataArray,
             };
         }
     }
 
     @Override
     public String getMLSensorData() {
-        // Accel0_Accel1_Accel2+Gyro0_Gyro1_Gyro3+PR0_PR1_PR2_PR3_PR4_PR5_PR6_PR7+Angle0_Angle1_Angle2+Temp+Quater0_Quater1_Quater2_Quater3,Data
+        // Accel0_Accel1_Accel2+Gyro0_Gyro1_Gyro3+PR0_PR1_PR2_PR3_PR4_PR5_PR6_PR7+Angle0_Angle1_Angle2+Temp+Quater0_Quater1_Quater2_Quater3+AmbientLight,Data
         StringBuilder builder = new StringBuilder();
 
         for (int i = 0, sizeI = mDataArrays.length; i < sizeI; i++) {
@@ -141,7 +153,7 @@ public class MLSensorData extends AbstractMLSensorData {
 
     @Override
     public String getMLSensorData(Cursor cursor) {
-        // Accel0_Accel1_Accel2+Gyro0_Gyro1_Gyro3+PR0_PR1_PR2_PR3_PR4_PR5_PR6_PR7+Angle0_Angle1_Angle2+Temp+Quater0_Quater1_Quater2_Quater3,Data
+        // Accel0_Accel1_Accel2+Gyro0_Gyro1_Gyro3+PR0_PR1_PR2_PR3_PR4_PR5_PR6_PR7+Angle0_Angle1_Angle2+Temp+Quater0_Quater1_Quater2_Quater3+AmbientLight,Data
         StringBuilder builder = new StringBuilder();
         Field[] dataArrayFields = getClass().getFields();
 
