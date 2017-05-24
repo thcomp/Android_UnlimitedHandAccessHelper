@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
+import android.support.v7.widget.SwitchCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,12 +30,14 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
     private static final String TAG = TestGestureDetector2Fragment.class.getSimpleName();
     private static final String PREF_INT_COMBINE_SENSOR_DATA_COUNT = "PREF_INT_COMBINE_SENSOR_DATA_COUNT";
     private static final String PREF_INT_DILUTE_DATA_BYTES = "PREF_INT_DILUTE_DATA_BYTES";
+    private static final String PREF_BOOLEAN_USE_ROCK_PAPER_SCISSORS = "PREF_BOOLEAN_USE_ROCK_PAPER_SCISSORS";
     private static final String PREF_BOOLEAN_USE_ACCEL_FOR_GESTURE_DETECT = "PREF_BOOLEAN_USE_ACCEL_FOR_GESTURE_DETECT";
     private static final String PREF_BOOLEAN_USE_GYRO_FOR_GESTURE_DETECT = "PREF_BOOLEAN_USE_GYRO_FOR_GESTURE_DETECT";
     private static final String PREF_BOOLEAN_USE_PHOTO_REFLECTOR_FOR_GESTURE_DETECT = "PREF_BOOLEAN_USE_PHOTO_REFLECTOR_FOR_GESTURE_DETECT";
     private static final String PREF_BOOLEAN_USE_ANGLE_FOR_GESTURE_DETECT = "PREF_BOOLEAN_USE_ANGLE_FOR_GESTURE_DETECT";
     private static final String PREF_BOOLEAN_USE_TEMPERATURE_FOR_GESTURE_DETECT = "PREF_BOOLEAN_USE_TEMPERATURE_FOR_GESTURE_DETECT";
     private static final String PREF_BOOLEAN_USE_QUATERNION_FOR_GESTURE_DETECT = "PREF_BOOLEAN_USE_QUATERNION_FOR_GESTURE_DETECT";
+    private static final String PREF_BOOLEAN_USE_AMBIENT_LIGHT_FOR_GESTURE_DETECT = "PREF_BOOLEAN_USE_AMBIENT_LIGHT_FOR_GESTURE_DETECT";
 
     private enum DefaultMlAsset {
         RightArm(UhGestureDetector.WearDevice.RightArm, "file:///android_asset/DefaultPb/right_arm/saved_data.pb"),
@@ -111,12 +114,14 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
                                     ToastUtil.showToast(activity, "use internal Protocol Buffer file for ML", Toast.LENGTH_SHORT);
                                 }
 
+                                mUhGestureDetector.useRockPaperScissors(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_ROCK_PAPER_SCISSORS, false));
                                 mUhGestureDetector.useAccelerationSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_ACCEL_FOR_GESTURE_DETECT, false));
                                 mUhGestureDetector.useGyroSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_GYRO_FOR_GESTURE_DETECT, false));
                                 mUhGestureDetector.usePhotoReflectorSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_PHOTO_REFLECTOR_FOR_GESTURE_DETECT, false));
                                 mUhGestureDetector.useAngleSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_ANGLE_FOR_GESTURE_DETECT, false));
                                 mUhGestureDetector.useTemperatureSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_TEMPERATURE_FOR_GESTURE_DETECT, false));
                                 mUhGestureDetector.useQuaternionSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_QUATERNION_FOR_GESTURE_DETECT, false));
+                                mUhGestureDetector.useAmbientLightSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_AMBIENT_LIGHT_FOR_GESTURE_DETECT, false));
                                 mUhGestureDetector.setFingerStatusListener(mGestureListener);
                                 mUhGestureDetector.startListening();
                             }
@@ -125,12 +130,14 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
             );
         } else {
             mUhGestureDetector = new UhGestureDetector2(activity, mUHAccessHelper, DefaultMlAsset.RightArm.wearDevice, DefaultMlAsset.RightArm.mlAsset, combineSensorDataCount, diluteDataBytes);
+            mUhGestureDetector.useRockPaperScissors(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_ROCK_PAPER_SCISSORS, false));
             mUhGestureDetector.useAccelerationSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_ACCEL_FOR_GESTURE_DETECT, false));
             mUhGestureDetector.useGyroSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_GYRO_FOR_GESTURE_DETECT, false));
             mUhGestureDetector.usePhotoReflectorSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_PHOTO_REFLECTOR_FOR_GESTURE_DETECT, false));
             mUhGestureDetector.useAngleSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_ANGLE_FOR_GESTURE_DETECT, false));
             mUhGestureDetector.useTemperatureSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_TEMPERATURE_FOR_GESTURE_DETECT, false));
             mUhGestureDetector.useQuaternionSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_QUATERNION_FOR_GESTURE_DETECT, false));
+            mUhGestureDetector.useAmbientLightSensor(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_AMBIENT_LIGHT_FOR_GESTURE_DETECT, false));
             mUhGestureDetector.setFingerStatusListener(mGestureListener);
             mUhGestureDetector.startListening();
 
@@ -161,24 +168,29 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
         etDiluteDataBytes.setText(String.valueOf(diluteDataBytes));
         mRootView.findViewById(R.id.btnUpdateDiluteDataBytes).setOnClickListener(mClickListener);
 
+        SwitchCompat swtUseRPS = (SwitchCompat) mRootView.findViewById(R.id.swtUseRPS);
         CheckBox cbUseAccel = (CheckBox) mRootView.findViewById(R.id.cbUseAccel);
         CheckBox cbUseGyro = (CheckBox) mRootView.findViewById(R.id.cbUseGyro);
         CheckBox cbUsePhotoReflector = (CheckBox) mRootView.findViewById(R.id.cbUsePhotoReflector);
         CheckBox cbUseAngle = (CheckBox) mRootView.findViewById(R.id.cbUseAngle);
         CheckBox cbUseTemperature = (CheckBox) mRootView.findViewById(R.id.cbUseTemperature);
         CheckBox cbUseQuaternion = (CheckBox) mRootView.findViewById(R.id.cbUseQuaternion);
-        cbUseAccel.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_ACCEL_FOR_GESTURE_DETECT, true));
+        CheckBox cbUseAmbientLight = (CheckBox) mRootView.findViewById(R.id.cbUseAmbientLight);
+        swtUseRPS.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_ROCK_PAPER_SCISSORS, false));
+        cbUseAccel.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_ACCEL_FOR_GESTURE_DETECT, false));
         cbUseAccel.setOnCheckedChangeListener(mCheckedChangeListener);
-        cbUseGyro.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_GYRO_FOR_GESTURE_DETECT, true));
+        cbUseGyro.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_GYRO_FOR_GESTURE_DETECT, false));
         cbUseGyro.setOnCheckedChangeListener(mCheckedChangeListener);
         cbUsePhotoReflector.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_PHOTO_REFLECTOR_FOR_GESTURE_DETECT, true));
         cbUsePhotoReflector.setOnCheckedChangeListener(mCheckedChangeListener);
         cbUseAngle.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_ANGLE_FOR_GESTURE_DETECT, true));
         cbUseAngle.setOnCheckedChangeListener(mCheckedChangeListener);
-        cbUseTemperature.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_TEMPERATURE_FOR_GESTURE_DETECT, true));
+        cbUseTemperature.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_TEMPERATURE_FOR_GESTURE_DETECT, false));
         cbUseTemperature.setOnCheckedChangeListener(mCheckedChangeListener);
-        cbUseQuaternion.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_QUATERNION_FOR_GESTURE_DETECT, true));
+        cbUseQuaternion.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_QUATERNION_FOR_GESTURE_DETECT, false));
         cbUseQuaternion.setOnCheckedChangeListener(mCheckedChangeListener);
+        cbUseAmbientLight.setChecked(PreferenceUtil.readPrefBoolean(activity, PREF_BOOLEAN_USE_AMBIENT_LIGHT_FOR_GESTURE_DETECT, true));
+        cbUseAmbientLight.setOnCheckedChangeListener(mCheckedChangeListener);
 
         return mRootView;
     }
@@ -217,12 +229,14 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
             // 処理なし
         }
 
+        PreferenceUtil.writePref(activity, PREF_BOOLEAN_USE_ROCK_PAPER_SCISSORS, ((SwitchCompat) mRootView.findViewById(R.id.swtUseRPS)).isChecked());
         PreferenceUtil.writePref(activity, PREF_BOOLEAN_USE_ACCEL_FOR_GESTURE_DETECT, ((CheckBox) mRootView.findViewById(R.id.cbUseAccel)).isChecked());
         PreferenceUtil.writePref(activity, PREF_BOOLEAN_USE_GYRO_FOR_GESTURE_DETECT, ((CheckBox) mRootView.findViewById(R.id.cbUseGyro)).isChecked());
         PreferenceUtil.writePref(activity, PREF_BOOLEAN_USE_PHOTO_REFLECTOR_FOR_GESTURE_DETECT, ((CheckBox) mRootView.findViewById(R.id.cbUsePhotoReflector)).isChecked());
         PreferenceUtil.writePref(activity, PREF_BOOLEAN_USE_ANGLE_FOR_GESTURE_DETECT, ((CheckBox) mRootView.findViewById(R.id.cbUseAngle)).isChecked());
         PreferenceUtil.writePref(activity, PREF_BOOLEAN_USE_TEMPERATURE_FOR_GESTURE_DETECT, ((CheckBox) mRootView.findViewById(R.id.cbUseTemperature)).isChecked());
         PreferenceUtil.writePref(activity, PREF_BOOLEAN_USE_QUATERNION_FOR_GESTURE_DETECT, ((CheckBox) mRootView.findViewById(R.id.cbUseQuaternion)).isChecked());
+        PreferenceUtil.writePref(activity, PREF_BOOLEAN_USE_AMBIENT_LIGHT_FOR_GESTURE_DETECT, ((CheckBox) mRootView.findViewById(R.id.cbUseAmbientLight)).isChecked());
     }
 
     @Override
@@ -318,6 +332,9 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
                     case R.id.cbUseQuaternion:
                         mUhGestureDetector.useQuaternionSensor(isChecked);
                         break;
+                    case R.id.cbUseAmbientLight:
+                        mUhGestureDetector.useAmbientLightSensor(isChecked);
+                        break;
                 }
             } else {
                 switch (buttonView.getId()) {
@@ -338,6 +355,9 @@ public class TestGestureDetector2Fragment extends AbstractTestFragment {
                         break;
                     case R.id.cbUseQuaternion:
                         PreferenceUtil.writePref(getActivity(), PREF_BOOLEAN_USE_QUATERNION_FOR_GESTURE_DETECT, isChecked);
+                        break;
+                    case R.id.cbUseAmbientLight:
+                        PreferenceUtil.writePref(getActivity(), PREF_BOOLEAN_USE_AMBIENT_LIGHT_FOR_GESTURE_DETECT, isChecked);
                         break;
                 }
             }
