@@ -468,8 +468,6 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
 
                 // sort by COLUMN_CDATE
                 for (int i = 0, sizeI = dataClassArray.length; i < sizeI; i++) {
-                    StringBuilder dataLineBuilder = new StringBuilder();
-
                     Cursor targetCursor = dataCursorArray[i];
                     Class targetDataClass = dataClassArray[i];
 
@@ -486,6 +484,7 @@ public class TestMLDataOutputFragment extends AbstractTestFragment {
                     AbstractMLSensorData tempInstance = (AbstractMLSensorData) constructor.newInstance(useSensorArray);
 
                     for (; !targetCursor.isAfterLast(); targetCursor.moveToNext()) {
+                        StringBuilder dataLineBuilder = new StringBuilder();
                         dataLineBuilder.append(tempInstance.getMLSensorData(targetCursor)).append("\n");
 
                         byte[] writeData = dataLineBuilder.toString().getBytes();
