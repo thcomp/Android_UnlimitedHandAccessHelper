@@ -110,7 +110,13 @@ public class MLSensorValueDatabase extends SQLiteOpenHelper {
             }
         }
 
-        return getWritableDatabase().insert(tableName, null, values) == 1;
+        SQLiteDatabase database = getWritableDatabase();
+        database.beginTransaction();
+        boolean ret = database.insert(tableName, null, values) == 1;
+        database.setTransactionSuccessful();
+        database.endTransaction();
+
+        return ret;
     }
 
     public int clearData() {

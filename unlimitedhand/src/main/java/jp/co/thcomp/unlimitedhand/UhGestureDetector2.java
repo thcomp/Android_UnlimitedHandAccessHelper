@@ -1,6 +1,10 @@
 package jp.co.thcomp.unlimitedhand;
 
 import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
@@ -29,7 +33,8 @@ public class UhGestureDetector2 {
     public static final int USE_SENSOR_INDEX_ANGLE = 3;
     public static final int USE_SENSOR_INDEX_TEMPERATURE = 4;
     public static final int USE_SENSOR_INDEX_QUATERNION = 5;
-    public static final int MAX_USE_SENSOR = 6;
+    public static final int USE_SENSOR_INDEX_AMBIENT_LIGHT = 6;
+    public static final int MAX_USE_SENSOR = 7;
 
     static {
         System.loadLibrary("tensorflow_inference");
@@ -49,6 +54,7 @@ public class UhGestureDetector2 {
     private TensorFlowInferenceInterface mInterface;
     private ArrayList<AbstractSensorData[]> mCombineSensorDatasList = new ArrayList<AbstractSensorData[]>();
     private boolean[] mUseEachSensor = new boolean[MAX_USE_SENSOR];
+    private boolean mUseRockPaperScissors = false;
 
     public UhGestureDetector2(Context context, UhAccessHelper uhAccessHelper, UhGestureDetector.WearDevice wearDevice, String mlPbFile, int combineSensorDataCount, int diluteDataBytes) {
         if (context == null) {
@@ -89,6 +95,7 @@ public class UhGestureDetector2 {
     }
 
     public void startListening() {
+        LogUtil.d(TAG, UhGestureDetector2.class.getSimpleName() + ".startListening: mGestureDetector.isListening()=" + mGestureDetector.isListening());
         if (!mGestureDetector.isListening()) {
             mCombineSensorDatasList.clear();
             mGestureDetector.startGestureListening();
@@ -96,9 +103,14 @@ public class UhGestureDetector2 {
     }
 
     public void stopListening() {
+        LogUtil.d(TAG, UhGestureDetector2.class.getSimpleName() + ".stopListening: mGestureDetector.isListening()=" + mGestureDetector.isListening());
         if (mGestureDetector.isListening()) {
             mGestureDetector.stopGestureListening();
         }
+    }
+
+    public void useRockPaperScissors(boolean use) {
+        mUseRockPaperScissors = use;
     }
 
     public void useAccelerationSensor(boolean use) {
@@ -125,8 +137,14 @@ public class UhGestureDetector2 {
         mUseEachSensor[USE_SENSOR_INDEX_QUATERNION] = use;
     }
 
-    private class GestureDetector implements UhAccessHelper.OnSensorPollingListener {
+    public void useAmbientLightSensor(boolean use) {
+        mUseEachSensor[USE_SENSOR_INDEX_AMBIENT_LIGHT] = use;
+    }
+
+    private class GestureDetector implements UhAccessHelper.OnSensorPollingListener, SensorEventListener {
         private boolean mListening = false;
+        private float mLastAmbientLight = 0f;
+        private Sensor mAmbientLightSensor = null;
 
         public void startGestureListening() {
             if (!mListening) {
@@ -154,9 +172,17 @@ public class UhGestureDetector2 {
                         case USE_SENSOR_INDEX_QUATERNION:
                             pollingFlag += UhAccessHelper.POLLING_QUATERNION;
                             break;
+                        case USE_SENSOR_INDEX_AMBIENT_LIGHT:
+                            // Androidから取得する値のためpollingFlagの変更なし
+                            break;
                     }
                 }
 
+                SensorManager sensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
+                mAmbientLightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+                if (mAmbientLightSensor != null) {
+                    sensorManager.registerListener(this, mAmbientLightSensor, UhAccessHelper.DEFAULT_AMBIENT_LIGHT_POLLING);
+                }
                 mUhAccessHelper.startPollingSensor(this, pollingFlag);
             }
         }
@@ -165,6 +191,12 @@ public class UhGestureDetector2 {
             if (mListening) {
                 mListening = false;
                 mUhAccessHelper.stopPollingSensor(this);
+
+                if (mAmbientLightSensor != null) {
+                    SensorManager sensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
+                    sensorManager.unregisterListener(this, mAmbientLightSensor);
+                    mAmbientLightSensor = null;
+                }
             }
         }
 
@@ -205,6 +237,7 @@ public class UhGestureDetector2 {
         public void onPollSensor(AbstractSensorData[] sensorDataArray) {
             final UhGestureDetector.OnFingerStatusListener fingerStatusListener = mOnFingerStatusListener;
 
+            LogUtil.d(TAG, "mListening=" + mListening + ", fingerStatusListener=" + fingerStatusListener);
             if (mListening) {
                 PhotoReflectorData photoReflectorData = null;
                 AccelerationData accelerationData = null;
@@ -232,6 +265,7 @@ public class UhGestureDetector2 {
                 if (fingerStatusListener != null) {
                     mCombineSensorDatasList.add(new AbstractSensorData[]{accelerationData, gyroData, photoReflectorData, angleData, temperatureData, quaternionData});
 
+                    LogUtil.d(TAG, INPUT_SENSOR_NAME + ": mCombineSensorDatasList.size=" + mCombineSensorDatasList.size() + ", mCombineSensorDataCount=" + mCombineSensorDataCount);
                     if (mCombineSensorDatasList.size() >= mCombineSensorDataCount) {
                         final int[] fSensorDataCountArray = {
                                 AccelerationData.ACCELERATION_NUM,
@@ -336,6 +370,22 @@ public class UhGestureDetector2 {
                                     int highestValue = value;
                                     int fingerConditionCount = UhGestureDetector.FingerCondition.values().length;
                                     final HandData fHandData = new HandData(UhGestureDetector.FingerCondition.Straight);
+
+                                    if (mUseRockPaperScissors) {
+                                        // change hightestValue
+                                        switch (highestValue) {
+                                            case 0:     // Paper
+                                                highestValue = 0;
+                                                break;
+                                            case 1:     // Scissor
+                                                highestValue = (int) (Math.pow(fingerConditionCount, 0) + Math.pow(fingerConditionCount, 3) + Math.pow(fingerConditionCount, 4));
+                                                break;
+                                            case 2:     // Rock
+                                                highestValue = (int) (Math.pow(fingerConditionCount, 0) + Math.pow(fingerConditionCount, 1) + Math.pow(fingerConditionCount, 2) + Math.pow(fingerConditionCount, 3) + Math.pow(fingerConditionCount, 4));
+                                                break;
+                                        }
+                                    }
+
                                     int thumbCondition = (highestValue % (int) Math.pow(fingerConditionCount, 1));
                                     int indexCondition = (highestValue % (int) Math.pow(fingerConditionCount, 2)) / (int) Math.pow(fingerConditionCount, 1);
                                     int middleCondition = (highestValue % (int) Math.pow(fingerConditionCount, 3)) / (int) Math.pow(fingerConditionCount, 2);
@@ -359,6 +409,16 @@ public class UhGestureDetector2 {
                     }
                 }
             }
+        }
+
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            mLastAmbientLight = sensorEvent.values[0];
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int i) {
+
         }
     }
 }

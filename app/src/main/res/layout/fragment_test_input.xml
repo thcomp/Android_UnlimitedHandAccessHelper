@@ -397,41 +397,70 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Rotate axis and degree from Quaternion: "/>
+                    android:text="Roll/Pitch/Yaw Angles from Quaternion:"/>
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:weightSum="1.0"
+                    android:weightSum="0.9"
                     android:orientation="horizontal">
                     <TextView
-                        android:id="@+id/tvAxisX"
+                        android:id="@+id/tvAngleRoll"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="0.25"/>
+                        android:layout_weight="0.3"/>
                     <View
                         android:layout_width="4dp"
                         android:layout_height="1px" />
                     <TextView
-                        android:id="@+id/tvAxisY"
+                        android:id="@+id/tvAnglePitch"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="0.25"/>
+                        android:layout_weight="0.3"/>
                     <View
                         android:layout_width="4dp"
                         android:layout_height="1px" />
                     <TextView
-                        android:id="@+id/tvAxisZ"
+                        android:id="@+id/tvAngleYaw"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="0.25"/>
+                        android:layout_weight="0.3"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Euler Angles from Quaternion:"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="0.9"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tvAnglePsi"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.3"/>
                     <View
                         android:layout_width="4dp"
                         android:layout_height="1px" />
                     <TextView
-                        android:id="@+id/tvRotateDegree"
+                        android:id="@+id/tvAngleTheta"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="0.25"/>
+                        android:layout_weight="0.3"/>
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="1px" />
+                    <TextView
+                        android:id="@+id/tvAnglePhi"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.3"/>
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
