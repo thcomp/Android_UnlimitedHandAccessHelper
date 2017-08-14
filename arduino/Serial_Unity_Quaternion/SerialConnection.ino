@@ -71,7 +71,7 @@ void serialEvent() {
       if(readQuaternion){
         uh.updateQuaternion(quaternionData);
         Serial.print("_QUAT:");
-        for(int i=0; i<sizeof(quaternionData); i++){
+        for(int i=0; i<(sizeof(quaternionData) / sizeof(float)); i++){
           if(i != 0){
             Serial.print(",");
           }
